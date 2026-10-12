@@ -1,0 +1,17 @@
+const fs=require('node:fs');
+const path=require('node:path');
+const {execFileSync}=require('node:child_process');
+const assert=require('node:assert/strict');
+const bin=path.dirname(require.resolve('@remotion/compositor-darwin-arm64/package.json'));
+process.env.DYLD_LIBRARY_PATH=bin;
+const video='output/harbour-broker-demo.mp4';
+const probe=JSON.parse(execFileSync(path.join(bin,'ffprobe'),['-v','error','-count_frames','-show_streams','-show_format','-of','json',video],{encoding:'utf8'}));
+const stream=probe.streams.find(s=>s.codec_type==='video');
+assert.equal(stream.width,1920);assert.equal(stream.height,1080);assert.equal(stream.codec_name,'h264');
+assert.equal(stream.r_frame_rate,'30/1');assert.equal(Number(stream.nb_frames),1800);
+assert.ok(Math.abs(Number(probe.format.duration)-60)<0.05);
+assert.equal(probe.streams.some(s=>s.codec_type==='audio'),false);
+assert.equal(Number(stream.nb_read_frames),1800);
+for(const t of [3,20,30,40,49,57])execFileSync(path.join(bin,'ffmpeg'),['-v','error','-y','-ss',String(t),'-i',video,'-frames:v','1',`output/final-${t}s.png`],{stdio:'pipe'});
+const result={durationSeconds:Number(probe.format.duration),width:stream.width,height:stream.height,fps:stream.r_frame_rate,frames:Number(stream.nb_frames),codec:stream.codec_name,audio:false,bytes:Number(probe.format.size),decode:'All frames decoded without errors',sampleTimes:[3,20,30,40,49,57]};
+fs.writeFileSync('output/verification.json',JSON.stringify(result,null,2));console.log(result);

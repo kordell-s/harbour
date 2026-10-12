@@ -1,0 +1,249 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const { readFileSync } = require('node:fs');
+const vm = require('node:vm');
+const source = (require('node:fs').existsSync(`${__dirname}/../dist/documents.js`) ? readFileSync(`${__dirname}/../dist/documents.js`, 'utf8') : '') + '\n' + readFileSync(process.env.HARBOUR_APP || `${__dirname}/../dist/app.js`, 'utf8');
+
+// A minimal DOM harness exercises the real route renderers and event handlers.
+// It does not substitute for a browser layout or accessibility check.
+function session(appSource = source) {
+  const elements = new Map();
+  const element = key => {
+    if (!elements.has(key)) elements.set(key, {
+      innerHTML: '', value: '', style: {}, files: [],
+      querySelector: selector => element(`${key} ${selector}`),
+      prepend(child) { element('#app').innerHTML += child.innerHTML; }, append() {},
+    });
+    return elements.get(key);
+  };
+  const listeners = [];
+  const context = vm.createContext({
+    document: { querySelector: element, querySelectorAll: () => [], createElement: () => element('created') },
+    location: { _hash: '', get hash() { return this._hash; }, set hash(value) { this._hash = value.startsWith('#') ? value : '#' + value; } },
+    window: { addEventListener: (event, handler) => listeners.push([event, handler]), scrollTo() {} },
+    setTimeout: () => 1, clearTimeout() {}, console,
+    FormData: class { constructor(form) { return Object.entries(form.data); } },
+  });
+  vm.runInContext(appSource, context);
+  return { element, listeners, run: code => vm.runInContext(code, context),
+    route(hash) { context.location.hash = hash; vm.runInContext('render()', context); return element('#app').innerHTML; },
+    decision(department, status, note = 'Sample reason', officer = 'Demo officer') {
+      for (const [key, value] of Object.entries({ department, decision: status, reason: note, officer })) element(`#${key}`).value = value;
+      element('#decisionform').onsubmit({ preventDefault() {} });
+    },
+  };
+}
+
+test('visit summary is a coordination stage, not universal approval',()=>{
+ const s=session(); assert.equal(s.run('overall(visits[2])'),'Ready to report');
+ assert.equal(s.run("visits[2].decisions.find(d=>d.key==='tax').applicability"),'Unconfirmed');
+});
+test('clearance stays independent from payments and conditional permits',()=>{
+ const s=session();
+ s.run("recordPayment(visits[0],{authority:'Customs',purpose:'Sample assessment',amount:'100',currency:'XCD',receipt:'DEMO-RECEIPT',assessed:'2027-01-12'})");
+ assert.equal(s.run("visits[0].decisions.find(d=>d.key==='customs-in').status"),'Changes requested');
+ assert.equal(s.run("visits[0].decisions.find(d=>d.key==='cruising').status"),'Pending');
+});
+test('officer records need a reference, reason and applicability',()=>{
+ const s=session();
+ assert.equal(s.run("setProcessRecord(visits[0],'cruising',{applicability:'Unconfirmed',status:'Recorded',actor:'Officer',note:'Sample',reference:'P-1',from:'2027-01-12',until:'2027-01-16'}).ok"),false);
+ assert.equal(s.run("setProcessRecord(visits[0],'customs-in',{applicability:'Required',status:'Recorded',actor:'Officer',note:'Sample',reference:''}).ok"),false);
+});
+test('marine permit requires current inward clearance evidence',()=>{
+ const s=session();
+ assert.equal(s.run("setProcessRecord(visits[0],'marine',{applicability:'Required',status:'Recorded',actor:'Officer',note:'Sample',reference:'M-1',from:'2027-01-12',until:'2027-01-16'}).ok"),false);
+});
+test('permit records have their own validity and conditions',()=>{
+ const s=session();
+ assert.equal(s.run("setProcessRecord(visits[2],'cruising',{applicability:'Required',status:'Recorded',actor:'Officer',note:'Sample permit',reference:'C-1',from:'2027-01-13',until:'2027-01-14',conditions:'Road Bay only'}).ok"),true);
+ assert.equal(s.run("processValidity(visits[2].decisions.find(d=>d.key==='cruising'),'2027-01-12')"),'Not yet valid');
+ assert.equal(s.run("processValidity(visits[2].decisions.find(d=>d.key==='cruising'),'2027-01-15')"),'Expired');
+});
+test('required inward clearance cannot be marked not applicable',()=>{
+ const s=session();
+ assert.equal(s.run("setProcessRecord(visits[2],'immigration-in',{applicability:'Not applicable',status:'Pending',actor:'Officer',note:'Skip',reference:'X'}).ok"),false);
+});
+test('saving an amendment preserves submitted information',()=>{
+ const s=session();s.run("saveApplicationDraft(visits[2],{...visits[2],name:'Changed name',response:'Correction'})");
+ assert.equal(s.run('visits[2].name'),'Sea Glass');
+ assert.ok(!s.route('#verify/HBR-DEMO-1003').includes('Changed name'));
+});
+test('submission retains decisions but marks previous records for review',()=>{
+ const s=session();s.run("saveApplicationDraft(visits[2],{...visits[2],response:'Changed voyage'})");
+ assert.equal(s.run('submitDraft(visits[2]).ok'),true);
+ assert.equal(s.run("visits[2].decisions[0].status"),'Recorded');
+ assert.equal(s.run("visits[2].decisions[0].needsReview"),true);
+ assert.equal(s.run('inwardComplete(visits[2])'),false);
+});
+test('cancellation cannot be toggled away or lost on resubmission',()=>{
+ const s=session();
+ s.run("setProcessRecord(visits[2],'customs-in',{applicability:'Required',status:'Cancelled',actor:'Officer',note:'Withdrawn',reference:'OLD'});saveApplicationDraft(visits[2],{...visits[2],response:'Amended'})");
+ s.run('submitDraft(visits[2])');
+ assert.equal(s.run('visits[2].decisions[0].status'),'Cancelled');
+ assert.equal(s.run("setProcessRecord(visits[2],'customs-in',{applicability:'Required',status:'Recorded',actor:'Officer',note:'Reissued',reference:'OLD'}).ok"),false);
+});
+test('incomplete drafts remain private and cannot be submitted',()=>{
+ const s=session();s.run("saveApplicationDraft(null,{name:'Incomplete',people:[],files:[]})");
+ assert.equal(s.run('submitDraft(visits[0]).ok'),false);
+ assert.match(s.route('#verify/'+s.run('visits[0].reference')),/Record not found/);
+});
+test('insurance filenames are no longer a universal submission requirement',()=>{
+ const s=session(); assert.equal(s.run("missingFields({...visits[2],files:[]}).length"),0);
+});
+test('departure cannot complete without inward and outward records',()=>{
+ const s=session();
+ assert.equal(s.run("recordMovement(visits[0],{actualArrival:'2027-01-12T10:00',actualDeparture:'2027-01-16T10:00'}).ok"),false);
+ assert.equal(s.run('visits[0].actualDeparture||""'),'');
+});
+test('payment requires a positive amount, currency and receipt',()=>{
+ const s=session();assert.equal(s.run("recordPayment(visits[0],{authority:'Customs',purpose:'Test',amount:'-1',currency:'XCD',receipt:'R',assessed:'2027-01-12'}).ok"),false);
+ assert.equal(s.run('visits[0].payments.length'),0);
+});
+test('reset restores process examples and clears payments',()=>{
+ const s=session();s.run("visits[0].payments.push({receipt:'test'});resetDemo()");
+ assert.equal(s.run('visits[0].payments.length'),0);assert.equal(s.run('visits[1].submitted'),false);
+});
+test('public verification omits identity, officer notes and payments',()=>{
+ const s=session();s.run("visits[0].decisions[0].note='PRIVATE NOTE'");
+ const html=s.route('#verify/HBR-DEMO-1001');
+ for(const value of ['Elena Morgan','DEMO-001','PRIVATE NOTE'])assert.ok(!html.includes(value));
+});
+test('every main route renders',()=>{
+ const s=session();for(const route of ['#home','#dashboard','#intake','#visit/1','#review/1','#verify/HBR-DEMO-1003','#submit/2','#reset'])assert.ok(s.route(route).length>100,route);
+});
+
+test('full arrival and departure coordination needs each independent outcome',()=>{
+ const s=session();
+ assert.equal(s.run("recordMovement(visits[2],{actualArrival:'2027-01-10T10:00',departureStarted:'Yes'}).ok"),true);
+ assert.equal(s.run('overall(visits[2])'),'Departure preparation');
+ for(const key of ['customs-out','immigration-out'])assert.equal(s.run(`setProcessRecord(visits[2],'${key}',{applicability:'Required',status:'Recorded',actor:'Officer',note:'Sample outward check',reference:'OUT-${key}'}).ok`),true);
+ assert.equal(s.run("recordMovement(visits[2],{actualArrival:'2027-01-10T10:00',actualDeparture:'2027-01-15T10:00',departureStarted:'Yes'}).ok"),true);
+ assert.equal(s.run('overall(visits[2])'),'Departed');
+ assert.equal(s.run("visits[2].decisions.find(d=>d.key==='tax').applicability"),'Unconfirmed');
+});
+test('conditional permission does not alter inward outcomes',()=>{
+ const s=session();
+ assert.equal(s.run("setProcessRecord(visits[2],'marine',{applicability:'Required',status:'Recorded',actor:'Officer',note:'Sample permission',reference:'MARINE-1',from:'2027-01-10',until:'2027-01-15',conditions:'Day use only'}).ok"),true);
+ assert.equal(s.run('inwardComplete(visits[2])'),true);
+ assert.equal(s.run("visits[2].decisions.find(d=>d.key==='cruising').status"),'Pending');
+});
+test('receipt amounts preserve decimal precision',()=>{
+ const s=session();
+ assert.equal(s.run("recordPayment(visits[2],{authority:'Customs',purpose:'Assessed fee',amount:'25.50',currency:'USD',receipt:'R1',assessed:'2027-01-10'}).ok"),true);
+ assert.equal(s.run('visits[2].payments[0].amount'),25.5);
+});
+
+test('cancellation cannot be hidden by not-applicable or whitespace in the old reference',()=>{
+ const s=session();s.run("setProcessRecord(visits[2],'cruising',{applicability:'Required',status:'Cancelled',actor:'Officer',note:'Cancelled',reference:'OLD'})");
+ assert.equal(s.run("setProcessRecord(visits[2],'cruising',{applicability:'Not applicable',status:'Cancelled',actor:'Officer',note:'Skip',reference:'NA'}).ok"),false);
+ assert.equal(s.run("setProcessRecord(visits[2],'cruising',{applicability:'Required',status:'Recorded',actor:'Officer',note:'Reissue',reference:' OLD ',from:'2027-01-10',until:'2027-01-15'}).ok"),false);
+ assert.equal(s.run("setProcessRecord(visits[2],'cruising',{applicability:'Required',status:'Recorded',actor:'Officer',note:'Reissue',reference:'NEW',from:'2027-01-10',until:'2027-01-15'}).ok"),true);
+ assert.equal(s.run('visits[2].history[0].previousRecord.status'),'Cancelled');
+});
+
+function preparedSession(type='cruising') {
+ const s=session();
+ s.run(`saveDocumentDraft(visits[2],'${type}',{...documentDefaults(visits[2]),applicant:'Sample Applicant',applicantAddress:'Sample address',ownerAddress:'Sample owner address',ownerAgent:'Sample Agent',agentPhone:'555',tonnageType:'Registered tonnage',tonnageSource:'Sample register',description:'Sample vessel',propulsion:'Power',rig:'Not applicable',colour:'White',ownerStatus:'Unconfirmed',period:'One week',requestedStart:'2027-01-10',applicationDate:'2027-01-08',declaration:'Confirmed for demo',construction:'Fibreglass',clearancePort:'Road Bay',nextPort:'Gustavia',destinationCountry:'Saint Barthélemy',crewCount:'1',guestCount:'0',countsConfirmed:'Confirmed for demo'})`);
+ assert.equal(s.run(`submitDocumentRequest(visits[2],'${type}').ok`),true);
+ return s;
+}
+test('document completeness is separate from visit completeness and drafts stay private',()=>{
+ const s=session();s.run("saveDocumentDraft(visits[2],'cruising',{...documentDefaults(visits[2]),applicant:'Private Applicant'})");
+ assert.equal(s.run("submitDocumentRequest(visits[2],'cruising').ok"),false);
+ assert.equal(s.run('missingFields(visits[2]).length'),0);
+ assert.ok(!s.route('#verify/HBR-DEMO-1003').includes('Private Applicant'));
+});
+test('submitted document requests retain distinct parties and cannot be changed by draft edits',()=>{
+ const s=preparedSession();s.run("saveDocumentDraft(visits[2],'cruising',{...documentDefaults(visits[2]),applicant:'Changed'})");
+ assert.equal(s.run('visits[2].documentRequests[0].data.applicant'),'Sample Applicant');
+ assert.equal(s.run('visits[2].documentRequests[0].data.ownerAgent'),'Sample Agent');
+ assert.equal(s.run('visits[2].owner'),'Fictional yacht owner');
+});
+function assess(s,exempt=false) {
+ assert.equal(s.run(`createAssessment(visits[2],{requestId:visits[2].documentRequests[0].id,actor:'Officer',reference:'A-1',amount:'${exempt?'0':'25.50'}',currency:'XCD',date:'2027-01-08',basis:'Manually confirmed demo amount',kind:'${exempt?'Exempt':'Fee'}'}).ok`),true);
+}
+function pay(s){
+ assert.equal(s.run("addLinkedReceipt(visits[2],{assessmentId:visits[2].assessments[0].id,receipt:'R-1',amount:'25.50',currency:'XCD',date:'2027-01-08'}).ok"),true);
+ assert.equal(s.run("verifyLinkedReceipt(visits[2],visits[2].payments[0].id,'Officer','Matched sample evidence').ok"),true);
+}
+const issuance="{requestId:visits[2].documentRequests[0].id,reference:'PERMIT-1',actor:'Officer',note:'Reviewed fictional evidence',from:'2027-01-10',until:'2027-01-16',issueDate:'2027-01-09',issuePlace:'Road Bay',conditions:'Sample scope'}";
+test('assessment and unverified receipt cannot issue permission',()=>{
+ const s=preparedSession();assess(s);
+ assert.equal(s.run(`issueDemoDocument(visits[2],${issuance}).ok`),false);
+ s.run("addLinkedReceipt(visits[2],{assessmentId:visits[2].assessments[0].id,receipt:'R-1',amount:'25.50',currency:'XCD',date:'2027-01-08'})");
+ assert.equal(s.run(`issueDemoDocument(visits[2],${issuance}).ok`),false);
+ assert.equal(s.run("visits[2].decisions.find(d=>d.key==='cruising').status"),'Pending');
+});
+test('issuance freezes data and payments; duplicate references and stale requests are rejected',()=>{
+ const s=preparedSession();assess(s);pay(s);
+ assert.equal(s.run(`issueDemoDocument(visits[2],${issuance}).ok`),true);
+ s.run("visits[2].name='Edited live name';visits[2].payments[0].amount=99");
+ assert.equal(s.run('visits[2].issuedDocuments[0].data.name'),'Sea Glass');
+ assert.equal(s.run('visits[2].issuedDocuments[0].receipts[0].amount'),25.5);
+ assert.equal(s.run(`issueDemoDocument(visits[2],${issuance}).ok`),false);
+ s.run('visits[2].version++');
+ assert.equal(s.run("documentState(visits[2],visits[2].issuedDocuments[0])"),'Review needed');
+});
+test('exemption needs authority basis and does not require a fabricated payment',()=>{
+ const s=preparedSession();assess(s,true);
+ assert.equal(s.run(`issueDemoDocument(visits[2],${issuance}).ok`),true);
+ assert.equal(s.run('visits[2].payments.length'),0);
+});
+test('receipts reject wrong currency, unknown assessment and duplicates',()=>{
+ const s=preparedSession();assess(s);
+ assert.equal(s.run("addLinkedReceipt(visits[2],{assessmentId:'missing',receipt:'R',amount:'25.50',currency:'XCD',date:'2027-01-08'}).ok"),false);
+ assert.equal(s.run("addLinkedReceipt(visits[2],{assessmentId:visits[2].assessments[0].id,receipt:'R',amount:'25.50',currency:'USD',date:'2027-01-08'}).ok"),false);
+ pay(s);
+ assert.equal(s.run("addLinkedReceipt(visits[2],{assessmentId:visits[2].assessments[0].id,receipt:'R-1',amount:'25.50',currency:'XCD',date:'2027-01-08'}).ok"),false);
+});
+test('clearance pack uses confirmed counts and destination without a cruising fee',()=>{
+ const s=preparedSession('clearance');
+ assert.equal(s.run(`issueDemoDocument(visits[2],${issuance}).ok`),true);
+ assert.equal(s.run('visits[2].issuedDocuments[0].data.crewCount'),'1');
+ assert.equal(s.run('visits[2].issuedDocuments[0].type'),'clearance');
+});
+test('cruising validity observes Anguilla 09:00 and end-of-day boundaries',()=>{
+ const s=session();s.run("Object.assign(visits[2].decisions[2],{status:'Recorded',applicability:'Required',from:'2027-01-10',until:'2027-01-10'})");
+ assert.equal(s.run("processValidity(visits[2].decisions[2],'2027-01-10T12:59:59Z')"),'Not yet valid');
+ assert.equal(s.run("processValidity(visits[2].decisions[2],'2027-01-10T13:00:00Z')"),'Within recorded dates');
+ assert.equal(s.run("processValidity(visits[2].decisions[2],'2027-01-11T04:00:00Z')"),'Expired');
+});
+test('document routes escape input and keep private content out of verification',()=>{
+ const s=preparedSession();assess(s,true);s.run(`issueDemoDocument(visits[2],${issuance})`);
+ for(const route of ['#documents/3','#document-review/3','#document/3/'+s.run('visits[2].issuedDocuments[0].id')])assert.ok(s.route(route).length>100);
+ const html=s.route('#verify/HBR-DEMO-1003');
+ for(const privateValue of ['Sample Applicant','Sample owner address','A-1'])assert.ok(!html.includes(privateValue));
+});
+
+test('document requests must belong to the submitted vessel',()=>{
+ const s=preparedSession();s.run("saveDocumentDraft(visits[2],'cruising',{...visits[2].documentRequests[0].data,registration:'OTHER-VESSEL'})");
+ assert.equal(s.run("submitDocumentRequest(visits[2],'cruising').ok"),false);
+});
+test('cancellation stays visible after reissue and same-reference edits trigger document review',()=>{
+ const s=preparedSession();assess(s,true);s.run(`issueDemoDocument(visits[2],${issuance})`);
+ s.run("setProcessRecord(visits[2],'cruising',{applicability:'Required',status:'Recorded',actor:'Officer',note:'Changed conditions',reference:'PERMIT-1',from:'2027-01-10',until:'2027-01-16',conditions:'New condition'})");
+ assert.equal(s.run('documentState(visits[2],visits[2].issuedDocuments[0])'),'Review needed');
+ s.run("setProcessRecord(visits[2],'cruising',{applicability:'Required',status:'Cancelled',actor:'Officer',note:'Cancelled',reference:'PERMIT-1'})");
+ s.run("setProcessRecord(visits[2],'cruising',{applicability:'Required',status:'Recorded',actor:'Officer',note:'Reissued',reference:'NEW-REF',from:'2027-01-10',until:'2027-01-16'})");
+ assert.equal(s.run('documentState(visits[2],visits[2].issuedDocuments[0])'),'Cancelled');
+});
+test('copy delivery records history without changing the issued snapshot and blocks cancellation',()=>{
+ const s=preparedSession();assess(s,true);s.run(`issueDemoDocument(visits[2],${issuance})`);
+ assert.equal(s.run("recordDocumentDelivery(visits[2],'DOC-1','Sample agent').ok"),true);
+ assert.equal(s.run('visits[2].issuedDocuments[0].deliveries.length'),1);
+ s.run("setProcessRecord(visits[2],'cruising',{applicability:'Required',status:'Cancelled',actor:'Officer',note:'Cancelled',reference:'PERMIT-1'})");
+ assert.equal(s.run("recordDocumentDelivery(visits[2],'DOC-1','Sample agent').ok"),false);
+});
+
+test('new request revision cannot reuse the earlier assessment and keeps escaped party text',()=>{
+ const s=preparedSession();assess(s,true);s.run(`issueDemoDocument(visits[2],${issuance})`);
+ s.run("saveDocumentDraft(visits[2],'cruising',{...visits[2].documentRequests[0].data,applicant:'<img src=x onerror=alert(1)>'});submitDocumentRequest(visits[2],'cruising')");
+ assert.equal(s.run('documentState(visits[2],visits[2].issuedDocuments[0])'),'Review needed');
+ assert.equal(s.run(`issueDemoDocument(visits[2],{...${issuance},requestId:'REQ-2',reference:'NEW-2'}).ok`),false);
+ const html=s.route('#document/3/REQ-2');
+ assert.ok(html.includes('&lt;img src=x onerror=alert(1)&gt;'));
+ assert.ok(!html.includes('<img src=x'));
+ s.run('resetDemo()');
+ assert.equal(s.run('visits[2].issuedDocuments.length'),0);
+ assert.equal(s.run('visits[2].documentRequests.length'),0);
+});
