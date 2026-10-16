@@ -20,3 +20,23 @@ Scope: live local preview; homepage, broker dashboard, intake, application detai
 ## Recommended next pass
 
 Fix the five items above as a focused CSS polish pass. Preserve the current workflow and visual identity. Recheck narrow navigation, aligned card actions and document spacing, then repeat the route/viewport scan. No product code was changed during this review, and the user's open intake form was left intact.
+
+
+## Government stakeholder demo polish — 16 October 2026
+
+Scope: Customs and Immigration queues/visit files, captured passport reviews, government e-pay assessments, expanded controls and payment outcomes. Preserve Harbour's coastal identity and independent authority decisions.
+
+| Before | After | Why |
+| --- | --- | --- |
+| Six header links wrapped across phone rows | Native disclosure menu on phone/tablet; full desktop navigation retained | Keeps all destinations available and reduces header height |
+| Workspace tabs wrapped to a second row | Three compact mobile tabs | Stable orientation without horizontal clipping |
+| Repeated context, notices and headings dominated the screen | Shorter notice and compact visit-file headings | Brings operational information forward |
+| Payment review mixed primary reference details with all supplementary fields | Core assessment summary plus expandable assessment details | Keeps the charge clear and shortens the path to payment controls |
+| Activity metadata could overflow with an unbroken agency name | Inherited anywhere wrapping in government workspaces | Long identifiers remain readable inside their panels |
+| Narrow result columns and small disclosure/link targets | Single-column phone result details and 44 px disclosure/link targets | Improves legibility and touch use |
+| Tall sticky sidebars could extend beyond short laptop screens | Normal page flow except sufficiently tall desktop viewports | Keeps decision controls reachable |
+| Toast text could wrap into a narrow floating block | Intrinsic-width, bounded, non-blocking feedback | Avoids obstructing touch controls |
+
+Verification: 46 workflow tests pass. Browser review covers all six main government routes at 320, 375, 390, 600, 768, 900, 901, 1024, 1101, 1280 and 1440 px. Additional checks cover expanded passport/decision/assessment forms, short (600 px) viewports, cancelled/declined/successful payments, empty search results, long names and references, and keyboard menu dismissal/navigation. No horizontal overflow, overlapping layout siblings, duplicate IDs or out-of-container controls remain in the checked states. The 375 px Customs queue starts approximately 340 px higher than before.
+
+Verification uses responsive browser viewports; physical iOS/Android keyboard, safe-area and touch behavior was not tested on hardware. Identity, payment and approval workflow rules are unchanged.

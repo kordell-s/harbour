@@ -78,3 +78,10 @@ E-pay reads current Customs cruising assessments, simulates success/decline/canc
 Verification: 46 Node workflow tests; browser checks of private passport note save, scoped Customs outcome, declined→successful payment, downloaded receipt and separate Customs verification. Six government routes checked at 390/768/1440 px with no horizontal overflow or duplicate IDs. Expanded decision date fields were additionally checked and changed to a single column in the narrow rail. Independent review found a new-visit store initialization bug, now covered by a regression test and fixed. Superseded receipt controls and downloaded verification status were corrected.
 
 Changes are prepared locally for review; the production deployment has not been updated by this implementation task.
+
+
+## Government frontend polish — 16 October 2026
+
+Reviewed the government desks and e-pay for stakeholder presentation. Updated responsive spacing, mobile/tablet header navigation, compact workspace tabs and notices, visit-file hierarchy, readable result columns, touch targets, short-screen sidebar behavior and long activity metadata wrapping. Supplementary payment assessment fields are now behind an accessible native disclosure; the main assessment reference, department, visit/vessel and totals stay visible. Mobile menu closes on navigation and Escape. No clearance, passport review or payment validation rules changed. Asset cache versions are `v=8` for app.js, government.js and government.css.
+
+See FRONTEND-REVIEW.md for findings and verification. Browser-only viewport checks cover 320–1440 px plus expanded forms, long fictional content, payment outcomes and empty states. Physical phone hardware remains unverified.

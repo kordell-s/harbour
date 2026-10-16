@@ -71,6 +71,7 @@ function intake(){
 
 function render(){const route=location.hash.slice(1)||'home';if(route==='customs'||route.startsWith('customs/'))governmentDesk('customs',route.split('/')[1]);else if(route==='immigration'||route.startsWith('immigration/'))governmentDesk('immigration',route.split('/')[1]);else if(route==='epay'||route.startsWith('epay/'))paymentPortal(route.split('/')[1],route.split('/')[2]);else if(route.startsWith('documents/'))documentPack(route.split('/')[1],route.split('/')[2]);else if(route.startsWith('document-review/'))documentReview(route.split('/')[1]);else if(route.startsWith('document/'))documentView(route.split('/')[1],route.split('/')[2]);else if(route==='dashboard')dashboard();else if(route.startsWith('visit/'))detail(route.split('/')[1]);else if(route==='intake')intake();else if(route.startsWith('submit/'))submissionReview(route.split('/')[1]);else if(route==='reset')resetScreen();else if(route.startsWith('review'))review(route.split('/')[1]);else if(route.startsWith('verify'))verify(decodeURIComponent(route.split('/')[1]||''));else home();if(route!=='intake')editingId=null;updateNavigation(route);window.scrollTo(0,0)}
 function updateNavigation(route){
+  document.querySelector('#mobile-menu')?.removeAttribute?.('open');
   const section=route.startsWith('customs')?'customs':route.startsWith('immigration')?'immigration':route.startsWith('epay')?'epay':(route.startsWith('review')||route.startsWith('document-review/'))?'review':route.startsWith('verify')?'verify':route==='dashboard'||route==='intake'||route==='reset'||route.startsWith('submit/')||route.startsWith('visit/')||route.startsWith('document')?'dashboard':'home';
   document.querySelectorAll('nav a').forEach(link=>{
     if(link.getAttribute('href')==='#'+section)link.setAttribute('aria-current','page');
@@ -264,3 +265,10 @@ seedGovernmentDemo();
 const initialDemo=clone(visits);
 window.addEventListener('hashchange',render);
 render();
+
+// Native disclosure menu remains keyboard-accessible and closes after navigation.
+const mobileNavigation=document.querySelector('#mobile-menu');
+if(mobileNavigation){
+ mobileNavigation.onclick=e=>{if(e.target.closest('a'))mobileNavigation.open=false};
+ mobileNavigation.onkeydown=e=>{if(e.key==='Escape'){mobileNavigation.open=false;mobileNavigation.querySelector('summary')?.focus?.()}};
+}
