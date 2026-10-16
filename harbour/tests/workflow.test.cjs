@@ -2,7 +2,8 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const vm = require('node:vm');
-const source = (require('node:fs').existsSync(`${__dirname}/../dist/documents.js`) ? readFileSync(`${__dirname}/../dist/documents.js`, 'utf8') : '') + '\n' + readFileSync(process.env.HARBOUR_APP || `${__dirname}/../dist/app.js`, 'utf8');
+const governmentSource = require('node:fs').existsSync(`${__dirname}/../dist/government.js`) ? readFileSync(`${__dirname}/../dist/government.js`, 'utf8') : '';
+const source = governmentSource + '\n' + (require('node:fs').existsSync(`${__dirname}/../dist/documents.js`) ? readFileSync(`${__dirname}/../dist/documents.js`, 'utf8') : '') + '\n' + readFileSync(process.env.HARBOUR_APP || `${__dirname}/../dist/app.js`, 'utf8');
 
 // A minimal DOM harness exercises the real route renderers and event handlers.
 // It does not substitute for a browser layout or accessibility check.
@@ -246,4 +247,92 @@ test('new request revision cannot reuse the earlier assessment and keeps escaped
  s.run('resetDemo()');
  assert.equal(s.run('visits[2].issuedDocuments.length'),0);
  assert.equal(s.run('visits[2].documentRequests.length'),0);
+});
+
+
+test('team desk rejects another department outcome without mutating records',()=>{
+ const s=session();assert.equal(s.run('typeof recordTeamOutcome'),'function');
+ const before=s.run('JSON.stringify(visits[0].decisions)');
+ assert.equal(s.run("recordTeamOutcome(visits[0],'customs','immigration-in',{status:'Recorded',actor:'Officer',note:'Checked',reference:'I-1',applicability:'Required'}).ok"),false);
+ assert.equal(s.run('JSON.stringify(visits[0].decisions)'),before);
+ assert.equal(s.run("recordTeamOutcome(visits[0],'customs','customs-in',{status:'Recorded',actor:'Officer',note:'Checked',reference:'C-1',applicability:'Required'}).ok"),true);
+});
+test('passport review is private and expires on submission changes',()=>{
+ const s=session();assert.equal(s.run('typeof recordPersonReview'),'function');
+ assert.equal(s.run("recordPersonReview(visits[0],0,{status:'Checked',actor:'Officer',note:'Sample passport reconciled'}).ok"),true);
+ assert.equal(s.run("currentPersonReview(visits[0],0).status"),'Checked');
+ assert.equal(s.run("visits[0].decisions.find(d=>d.key==='immigration-in').status"),'Pending');
+ s.run("visits[0].people[0].passport='CHANGED'");
+ assert.equal(s.run('currentPersonReview(visits[0],0)'),null);
+ s.run('visits[0].version++');assert.equal(s.run('currentPersonReview(visits[0],0)'),null);
+ const html=s.route('#verify/HBR-DEMO-1001');assert.doesNotMatch(html,/Sample passport reconciled|CHANGED|Elena Morgan/);
+});
+test('e-pay success links evidence once and leaves authority decisions untouched',()=>{
+ const s=session();assert.equal(s.run('typeof simulateGovernmentPayment'),'function');
+ s.run("var gv=visits.find(v=>v.id==='gov-demo');var bill=gv.assessments[0];var beforeDecision=JSON.stringify(gv.decisions)");
+ assert.equal(s.run("simulateGovernmentPayment(gv,bill.id,'Succeeded').ok"),true);
+ assert.equal(s.run('gv.payments.length'),1);assert.equal(s.run('gv.payments[0].verified'),false);
+ assert.equal(s.run('JSON.stringify(gv.decisions)'),s.run('beforeDecision'));
+ assert.equal(s.run("simulateGovernmentPayment(gv,bill.id,'Succeeded').ok"),false);
+ assert.equal(s.run('gv.payments.length'),1);
+ assert.equal(s.run('gv.issuedDocuments.length'),0);
+});
+test('declined and cancelled payments allow retry without creating receipts',()=>{
+ const s=session();assert.equal(s.run('typeof simulateGovernmentPayment'),'function');
+ s.run("var gv=visits.find(v=>v.id==='gov-demo');var bill=gv.assessments[0]");
+ for(const result of ['Declined','Cancelled'])assert.equal(s.run(`simulateGovernmentPayment(gv,bill.id,'${result}').ok`),true);
+ assert.equal(s.run('gv.payments.length'),0);
+ assert.equal(s.run("simulateGovernmentPayment(gv,bill.id,'Succeeded').ok"),true);
+ assert.equal(s.run('gv.epayTransactions.length'),3);
+});
+test('e-pay rejects stale requests and public verification omits transactions and passports',()=>{
+ const s=session();assert.equal(s.run('typeof simulateGovernmentPayment'),'function');
+ s.run("var gv=visits.find(v=>v.id==='gov-demo');gv.version++");
+ assert.equal(s.run("simulateGovernmentPayment(gv,gv.assessments[0].id,'Succeeded').ok"),false);
+ const html=s.route('#verify/HBR-DEMO-GOV');assert.doesNotMatch(html,/DEMO-NS-P001|DEMO-ASSESS-401|Taylor Harbour/);
+});
+test('government routes show populated records and escape private values',()=>{
+ const s=session();assert.equal(s.run('typeof governmentDesk'),'function');
+ for(const route of ['#customs','#customs/gov-demo','#immigration','#immigration/gov-demo','#epay','#epay/gov-demo/ASSESS-1'])assert.ok(s.route(route).length>400,route);
+ s.run("visits.find(v=>v.id==='gov-demo').people[0].passport='<img src=x onerror=alert(1)>'");
+ const html=s.route('#immigration/gov-demo');assert.match(html,/&lt;img/);assert.doesNotMatch(html,/<img src=x/);
+});
+
+test('team queue recognises arrival review independently of pending departure',()=>{
+ const s=session();assert.equal(s.run("teamState(visits[2],'customs')"),'Arrival reviewed');
+ assert.equal(s.run("teamState(visits[2],'immigration')"),'Arrival reviewed');
+});
+test('payment view reflects later authority verification',()=>{
+ const s=session();s.run("var gv=visits.find(v=>v.id==='gov-demo');simulateGovernmentPayment(gv,'ASSESS-1','Succeeded');verifyLinkedReceipt(gv,gv.payments[0].id,'Demo officer','Matched demo receipt')");
+ const html=s.route('#epay/gov-demo/ASSESS-1');assert.match(html,/Receipt verified in demo/);assert.doesNotMatch(html,/Authority verification is still pending/);
+ assert.match(s.run('paymentReceiptHTML(gv,gv.epayTransactions[0])'),/Receipt verified in demo/);
+});
+test('e-pay pays only the remaining cents after linked evidence',()=>{
+ const s=session();s.run("var gv=visits.find(v=>v.id==='gov-demo');addLinkedReceipt(gv,{assessmentId:'ASSESS-1',receipt:'PARTIAL',amount:'24.95',currency:'XCD',date:'2026-10-16'})");
+ assert.equal(s.run("simulateGovernmentPayment(gv,'ASSESS-1','Succeeded').transaction.amount"),200.05);
+ assert.equal(s.run('gv.payments.length'),2);
+});
+
+test('e-pay receipt must be verified before cruising issuance can pass',()=>{
+ const s=session();s.run("var gv=visits.find(v=>v.id==='gov-demo');simulateGovernmentPayment(gv,'ASSESS-1','Succeeded');var issue={requestId:'REQ-1',reference:'DEMO-ISSUE-401',actor:'Officer',note:'Reviewed fictional request',issueDate:'2027-01-18',issuePlace:'Road Bay',from:'2027-01-18',until:'2027-01-24',conditions:'Fictional example'}");
+ assert.equal(s.run('issueDemoDocument(gv,issue).ok'),false);
+ s.run("verifyLinkedReceipt(gv,gv.payments[0].id,'Officer','Matched demo receipt')");
+ assert.equal(s.run('issueDemoDocument(gv,issue).ok'),true);
+ assert.equal(s.run('gv.issuedDocuments[0].receipts[0].verified'),true);
+ assert.equal(s.run("gv.decisions.find(d=>d.key==='immigration-in').status"),'Pending');
+});
+test('passport observations flag expiry during travel without inventing admission status',()=>{
+ const s=session();s.run("var gv=visits.find(v=>v.id==='gov-demo')");
+ assert.match(s.run('passportObservations(gv.people[2],gv).join()'),/Expires during planned visit/);
+ assert.equal(s.run('passportObservations(gv.people[0],gv).length'),0);
+ assert.equal(s.run("gv.decisions.find(d=>d.key==='immigration-in').status"),'Pending');
+});
+
+test('newly submitted broker visit opens Customs before any document pack exists',()=>{
+ const s=session();s.run("var fresh=saveApplicationDraft(null,{...clone(visits[0]),name:'Fresh yacht'});submitDraft(fresh)");
+ assert.match(s.route('#customs/'+s.run('fresh.id')),/Fresh yacht/);
+});
+test('superseded receipt is labelled and cannot offer verification in the Customs desk',()=>{
+ const s=session();s.run("var gv=visits.find(v=>v.id==='gov-demo');simulateGovernmentPayment(gv,'ASSESS-1','Succeeded');gv.version++");
+ const html=s.route('#customs/gov-demo');assert.match(html,/Superseded receipt/);assert.doesNotMatch(html,/data-verify-receipt=/);
 });

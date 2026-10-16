@@ -32,3 +32,16 @@ See `PROCESS-RESEARCH.md` for source links and open questions. The coastal desig
 8. Prepare amendments or use the process review to cancel. Earlier documents keep their content and show review/cancellation status; reissue requires a revised request and a new document number.
 
 All values and document controls are fictional. The supplied real clearance scan's identities and signature were not imported. Requested and issued dates remain separate; current fee rules and calendar expiry conventions require stakeholder confirmation.
+
+
+## Government stakeholder walkthrough
+
+Start at `#customs`, then open **North Star**. The visit is populated so stakeholders can inspect the information and decision states without entering data.
+
+1. **Customs file** (`#customs/gov-demo`): vessel identity, representation, voyage/declarations, supporting filenames, current cruising request, fictional assessment and team decisions. The decision controls are optional.
+2. **Immigration file** (`#immigration/gov-demo`): three fictional people, captured passport details, one checked identity review and a passport expiring during the planned visit. Explain that observations and identity checks do not grant admission.
+3. **Government e-pay** (`#epay/gov-demo/ASSESS-1`): review the assessment and preconfigured fictional payment method. Select a successful, declined or cancelled simulation. No real card details or money are used. A successful result produces a downloadable demo receipt.
+4. Return to **Customs reconciliation**: the receipt awaits verification. The optional verification control updates the evidence; issuance stays separate in the existing assessment/issuance desk.
+5. **Public verification** (`#verify/HBR-DEMO-GOV`) shows the scoped process outcomes without passport identities, private review notes or receipts.
+
+Navigation keeps session changes; reloading restores the examples. Planned visits are January 2027. The assessment date uses the current Anguilla date. The demonstration amount is illustrative, not a government fee quote.

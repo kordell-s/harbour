@@ -52,3 +52,13 @@ The authority desk uses manually entered assessments; there is no automatic tari
 Issued copies freeze application, assessment and receipt data. Amendments flag review, and cancellation remains visible after reissue. Cruising validity now uses 09:00 commencement and end-of-day expiry in Anguilla time. Calendar-period expiry remains officer-confirmed. All rules remain demo behavior pending operational validation.
 
 Document pages have print styling and a downloadable standalone HTML copy. Use a regular browser's print dialog to save that copy as PDF if embedded printing is unavailable. No real signature/stamp is reproduced. Private document routes are UI separation only, not access control; authentication and storage remain absent. Reloading clears document records along with other demo changes.
+
+## Government workspaces — 16 October 2026
+
+`dist/government.js` and `dist/government.css` add dedicated Customs and Immigration queues and visit files. Navigation: `#customs`, `#immigration`, `#epay`. Open the populated North Star record (`gov-demo`) for the connected presentation. The original generic review remains available for other process records.
+
+Customs displays submitted vessel, representation, voyage, document, assessment and receipt evidence. Immigration displays the submitted crew/guest manifest with passport number, issuing country, issue/expiry dates, private version-bound identity checks and separate arrival/departure outcomes. Passport date observations are informational and do not decide eligibility. Broker intake, submission review and CSV manifest include the added passport fields. No passport images or document contents are uploaded.
+
+E-pay is a local simulation. It reads current Customs cruising fee assessments; the fictional amount is not a tariff. Success adds unverified linked receipt evidence. Decline/cancellation adds a retryable attempt without a receipt. Existing evidence reserves its amount to prevent duplicate payment; partial evidence reduces the remaining amount. Superseded requests cannot be paid. Customs verification and document issuance remain explicit, independent actions. Downloaded demo receipts contain payment references, not passport details.
+
+All records remain in memory and reset on reload. Team selection is UI simulation, not authentication or access control. Public verification excludes passport information, private identity review notes and payment transactions. Real use requires authenticated roles, protected storage, operational validation and an approved payment integration.

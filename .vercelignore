@@ -1,0 +1,6 @@
+.git/
+node_modules/
+tmp/
+harbour/video/
+harbour/tests/
+docs/

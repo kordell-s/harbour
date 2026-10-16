@@ -65,3 +65,16 @@ Verification: JavaScript syntax checks and 33 workflow tests pass. Browser-teste
 ## Broker pitch video — 11 October 2026
 
 Created a separate Remotion project under `video/`. The user chose captions only. The 60-second landscape composition uses actual app-rendered screens with isolated fictional fixtures, Harbour's existing coast asset and teal styling. Story: broker attention queue, reusable preparation, separate authority reviews, linked receipt verification, preserved issued copies, and an invitation to a walkthrough. It identifies the prototype and simulated authority actions. Product source and existing browser-session records were not changed. See `video/README.md` for editing, rendering and asset attribution.
+
+
+## Government desks and e-pay — 16 October 2026
+
+User approved dedicated Customs and Immigration information views, including captured passport data, plus a government e-pay simulation. Stakeholders should see populated information and decision states without having to complete a workflow. Implemented in `dist/government.js` / `government.css`, loaded alongside the existing vanilla JS app. North Star (`gov-demo`, `HBR-DEMO-GOV`) is a fourth fictional example with a submitted cruising request, current assessment, three manifest entries, a checked private identity review and a passport-date observation.
+
+Routes: `#customs`, `#customs/:id`, `#immigration`, `#immigration/:id`, `#epay`, `#epay/:id`, `#epay/:id/:assessmentId`. Broker intake/review/export now include passport issuer, issue date and expiry date in addition to the existing passport number. Person review records are keyed to submission version and captured identity. No passport images or document contents are stored. Public verify keeps private identity/review/payment fields out.
+
+E-pay reads current Customs cruising assessments, simulates success/decline/cancellation, creates linked unverified receipt evidence on success, prevents duplicate/stale payments and accounts for partial receipt amounts in cents. Explicit Customs verification is still required before the existing cruising issuance gate passes. No live payment processor, fees calculator, authentication, persistent storage or official government branding was added.
+
+Verification: 46 Node workflow tests; browser checks of private passport note save, scoped Customs outcome, declined→successful payment, downloaded receipt and separate Customs verification. Six government routes checked at 390/768/1440 px with no horizontal overflow or duplicate IDs. Expanded decision date fields were additionally checked and changed to a single column in the narrow rail. Independent review found a new-visit store initialization bug, now covered by a regression test and fixed. Superseded receipt controls and downloaded verification status were corrected.
+
+Changes are prepared locally for review; the production deployment has not been updated by this implementation task.
