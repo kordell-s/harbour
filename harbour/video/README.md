@@ -1,28 +1,37 @@
-# Harbour broker demo video
+# Harbour stakeholder demo video
 
-60-second captions-only pitch, 1920 × 1080, 30 fps, H.264 MP4. No voiceover, music or audio track. Designed for broker presentations and landscape video sharing.
+60-second captions-only stakeholder pitch, 1920 × 1080, 30 fps, H.264 MP4. No voiceover, music or audio track. Includes the broker workspace, Customs, Immigration passport review, government e-pay simulation, receipt reconciliation and issued-copy history.
 
 ## Deliverables
 
-- `output/harbour-broker-demo.mp4`: final video.
-- `output/harbour-broker-demo-poster.png`: cover image.
-- `captions.srt`: optional plain-text caption timing.
-- `src/index.tsx`: editable Remotion composition.
-- `STORYBOARD.md`: narrative and source rationale.
+- `output/harbour-stakeholder-demo.mp4`: final video.
+- `output/harbour-stakeholder-demo-poster.png`: cover image.
+- `captions.srt`: companion captions with exact timings.
+- `src/index.tsx`: editable Remotion composition, `HarbourStakeholderPitch`.
+- `STORYBOARD.md`: pitch structure and editorial boundaries.
+- `public/stakeholder-captures.json`: screenshot provenance.
 
 ## Edit and render
 
 ```sh
 npm ci
 npm run studio
+npm run check
 npm run render
+npm run verify
 ```
 
-The current renderer uses Google Chrome at its standard macOS installation path in `remotion.config.ts`. On another platform, remove that override to let Remotion use its supported browser or set your local executable. Versions are pinned in `package-lock.json`.
+The current renderer uses Google Chrome at its standard macOS installation path in `remotion.config.ts`. On another platform, remove that override to let Remotion use its supported browser, or set your local executable. The verification script uses Remotion's bundled macOS ARM ffmpeg/ffprobe; use equivalent local tools on another platform. Dependencies are pinned in `package-lock.json`.
 
-The video uses screenshots captured from the actual local Harbour prototype, with staged fictional data. All animation is driven by Remotion frames. To regenerate UI captures after app changes, run `npm run capture` from this directory; that script needs the app in `../dist/`. Captures are included, so the video can be rendered without recapturing the app.
+All required images are included: render without recapturing the app. New stakeholder captures were collected with browser automation from an isolated local session using fictional demo records. `capture.cjs` is the legacy broker-only capture script; it does not regenerate the new stakeholder captures. Capture selectors, dimensions and app revision are in the provenance JSON.
 
-The project does not change the product's code, contact authorities or send messages. The pitch makes no numerical time-saving claims and identifies simulated authority actions. The closing invitation intentionally contains no invented contact details.
+All animation is driven by Remotion frames. Scenes are sequential and opaque; typography, notes, panels and captions occupy separate regions. Whole screenshots use contain sizing without panning or cropping field labels. Scene review includes every screen state and adjacent transition frames.
+
+## Pitch boundaries
+
+The prototype retains broker-led preparation and independent authority review. Captured passport information supports officer review; identity checks do not grant admission. E-pay is simulated, collects no money and accepts no real card data. Example amounts are fictional, not current government tariffs. Receipts need explicit authority verification; payment never issues a permit or grants clearance. Issued copies and reported delivery records remain in the visit history. No message is sent by recording delivery.
+
+The closing card labels the prototype and links to the actual stakeholder demo. No endorsement, live government integration, official document validity or productivity statistic is claimed. All people, passport references and payment references are fictional.
 
 ## Asset credit
 
@@ -30,8 +39,4 @@ Coastal photo by **Roy Googin**, [Anguilla aerial view, western portion](https:/
 
 ## Verification
 
-TypeScript check; scene-by-scene rendered-frame inspection; final MP4 metadata and decode checks. No native app or browser session data was recorded. All people, references and financial values shown are fictional examples from the local demo.
-
-## Layout revision
-
-Callouts use a dedicated 435 px left column, separated from product screenshots. Global border-box sizing keeps padding inside the assigned bounds. Scene durations do not overlap, preventing double-exposed text during transitions. Headings, supporting copy and captions retain separate vertical regions. Rendered review frames cover all seven scenes plus transition samples.
+Run TypeScript checking, `node render-review.cjs` for review stills, then render and verify the exported MP4. Verification confirms 60 seconds, 1920 × 1080, 30 fps, H.264, 1,800 decoded frames and no audio stream; it also extracts final-video stills for visual inspection. The prior broker MP4 is preserved separately in the working project's output folder.

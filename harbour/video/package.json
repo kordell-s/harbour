@@ -5,7 +5,7 @@
   "scripts": {
     "capture": "node capture.cjs",
     "studio": "remotion studio src/index.tsx",
-    "render": "remotion render src/index.tsx HarbourBrokerPitch output/harbour-broker-demo.mp4 --codec=h264 --crf=18 --concurrency=4",
+    "render": "remotion render src/index.tsx HarbourStakeholderPitch output/harbour-stakeholder-demo.mp4 --codec=h264 --crf=18 --concurrency=4",
     "check": "tsc --noEmit",
     "verify": "node verify.cjs"
   },

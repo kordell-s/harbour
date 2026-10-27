@@ -1,28 +1,48 @@
 1
-00:00:00,000 --> 00:00:07,000
-Meet Harbour. Yacht visit coordination, led by your broker.
+00:00:00,000 --> 00:00:06,000
+Meet Harbour. From broker preparation to authority review and payment evidence.
 
 2
-00:00:07,000 --> 00:00:16,000
-Spot outstanding work before it becomes another follow-up.
+00:00:06,000 --> 00:00:13,000
+Start with the broker. See outstanding work and prepare the visit for review.
 
 3
-00:00:16,000 --> 00:00:25,000
-Review each request before submitting it for authority review.
+00:00:13,000 --> 00:00:18,500
+Give Customs the submitted information it needs to assess the visit.
 
 4
-00:00:25,000 --> 00:00:34,000
-Broker preparation stays separate from authority decisions.
+00:00:18,500 --> 00:00:22,000
+Customs records each process outcome independently.
 
 5
-00:00:34,000 --> 00:00:44,000
-Verification is explicit. A payment never issues a permit.
+00:00:22,000 --> 00:00:28,000
+Captured passport information supports review. Immigration retains entry decisions.
 
 6
-00:00:44,000 --> 00:00:53,000
-From preparation to the issued demo copy—one connected record.
+00:00:28,000 --> 00:00:32,000
+Flag a passport that expires during the visit for officer review.
 
 7
-00:00:53,000 --> 00:01:00,000
-Book a Harbour walkthrough. Bring your workflow.
-Working prototype. Fictional data. Simulated authority actions.
+00:00:32,000 --> 00:00:35,000
+Review the assessment, amount and currency before the demo payment.
+
+8
+00:00:35,000 --> 00:00:38,000
+Simulate a successful payment without entering real card details.
+
+9
+00:00:38,000 --> 00:00:42,000
+A linked demo receipt returns to the visit, awaiting authority verification.
+
+10
+00:00:42,000 --> 00:00:49,000
+Payment never grants clearance or automatically issues a permit.
+
+11
+00:00:49,000 --> 00:00:54,000
+After explicit issuance review, preserve the copy and its delivery history.
+
+12
+00:00:54,000 --> 00:01:00,000
+Explore the stakeholder demo: harbour-xi-eight.vercel.app
+Working prototype. Fictional data. No live government integration.

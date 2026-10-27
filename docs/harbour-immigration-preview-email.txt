@@ -1,0 +1,25 @@
+Subject: Harbour concept — yacht application workflows for your feedback and consideration
+
+Dear Immigration Team,
+
+When I moved to Anguilla earlier this year, a few people suggested that I explore a solution to the difficulties brokers were experiencing with the manual paperwork associated with yacht registration and clearance.
+
+Those conversations led me to develop Harbour, a concept for coordinating yacht-visit applications between customers, brokers, Immigration and Customs. Brokers have expressed interest in the platform, and I’m now sharing this early concept with your team for feedback and consideration.
+
+I recognise that a successful solution would need the input and support of both Immigration and Customs. My intention is to help create a process that works for visiting customers, brokers and the Government of Anguilla, while preserving each department’s responsibilities and decision-making authority.
+
+In my view, the experience of arriving by yacht should reflect Anguilla’s standing as a premium destination. A clear, efficient and welcoming administrative process is an important part of that experience.
+
+You can explore the concept here:
+[Insert the Vercel shareable preview link]
+
+Please select Immigration, then North Star, to view the populated example. It demonstrates crew and passenger manifests, captured passport information, expiry observations, example review notes and separate arrival and departure outcomes.
+
+I’d welcome your guidance on the information and supporting documents officers need, how reviews and decisions should be recorded, and requirements for storing, accessing and retaining these records.
+
+This is an early prototype using fictional records and simulated authority actions. It is not connected to live government systems. Please use sample information only.
+
+Would your team be available for a brief walkthrough and feedback discussion?
+
+Kind regards,
+Kordell Smith

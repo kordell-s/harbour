@@ -1,0 +1,94 @@
+{
+  "source": "Harbour 79f4043 \u00b7 local fictional session",
+  "method": "Cua screenshots of rendered UI; element rectangles in document coordinates",
+  "captured": "2026-10-16",
+  "screens": [
+    {
+      "name": "stakeholder-broker",
+      "selector": ".action-queue",
+      "x": 71,
+      "y": 367,
+      "width": 65536,
+      "height": 4292542531
+    },
+    {
+      "name": "stakeholder-customs-decisions",
+      "selector": ".gov-aside > .gov-section:nth-child(1)",
+      "x": 896,
+      "y": 547,
+      "width": 65536,
+      "height": 4292542531
+    },
+    {
+      "name": "stakeholder-customs-queue",
+      "selector": ".desk-queue",
+      "x": 71,
+      "y": 178,
+      "width": 65536,
+      "height": 4292542531
+    },
+    {
+      "name": "stakeholder-customs-receipt-pending",
+      "selector": ".gov-section with Assessments & receipt reconciliation heading",
+      "width": 65536,
+      "height": 4292542531
+    },
+    {
+      "name": "stakeholder-customs-receipt-verified",
+      "selector": ".gov-section with Assessments & receipt reconciliation heading",
+      "width": 65536,
+      "height": 4292542531
+    },
+    {
+      "name": "stakeholder-customs-vessel",
+      "selector": ".gov-main > .gov-section:nth-child(1)",
+      "x": 72,
+      "y": 547,
+      "width": 65536,
+      "height": 4292542531
+    },
+    {
+      "name": "stakeholder-delivery",
+      "selector": ".document-page > .panel.no-print",
+      "width": 65536,
+      "height": 4292542531
+    },
+    {
+      "name": "stakeholder-epay-assessment",
+      "selector": ".epay-layout > .panel",
+      "width": 65536,
+      "height": 4292542531
+    },
+    {
+      "name": "stakeholder-epay-checkout",
+      "selector": "#epay-form",
+      "width": 65536,
+      "height": 4292542531
+    },
+    {
+      "name": "stakeholder-epay-success",
+      "selector": ".payment-result",
+      "width": 65536,
+      "height": 4292542531
+    },
+    {
+      "name": "stakeholder-immigration-check",
+      "selector": ".manifest-person:nth-child(3)",
+      "width": 65536,
+      "height": 4292542531
+    },
+    {
+      "name": "stakeholder-immigration-passport",
+      "selector": ".manifest-person:nth-child(1)",
+      "width": 65536,
+      "height": 4292542531
+    },
+    {
+      "name": "stakeholder-issued-copy",
+      "selector": ".document-layout > aside > .panel:first-child",
+      "width": 65536,
+      "height": 4292542531,
+      "state": "After reported delivery; one delivery record"
+    }
+  ]
+}

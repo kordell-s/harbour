@@ -1,0 +1,22 @@
+Subject: Harbour preview — yacht applications and clearance workflows
+
+Hi 4Gs team,
+
+I’m sharing a preview of Harbour, a proposed shared platform for yacht brokers in Anguilla. The aim is to reduce repeated paperwork and make yacht-visit information, departmental reviews and payment records easier to coordinate.
+
+Open the preview:
+[Insert the Vercel shareable preview link]
+
+The demo includes:
+- A broker workspace for preparing visit details and tracking outstanding work.
+- Customs and Immigration views showing vessel, crew and passport information for review, with separate departmental decisions.
+- A simulated government e-pay portal with linked receipts and a separate verification step.
+
+I’m exploring a per-application service model across participating brokers, with scope, pricing and support arrangements to be agreed after feedback.
+
+This is a working prototype using fictional records. Payments and authority actions are simulated, and it is not connected to live government systems. Please use sample information only.
+
+Would you and the team be available for a 20-minute walkthrough? I’d welcome your feedback on the workflow, any missing information and what would be needed for a pilot.
+
+Best regards,
+Kordell Smith
