@@ -336,3 +336,37 @@ test('superseded receipt is labelled and cannot offer verification in the Custom
  const s=session();s.run("var gv=visits.find(v=>v.id==='gov-demo');simulateGovernmentPayment(gv,'ASSESS-1','Succeeded');gv.version++");
  const html=s.route('#customs/gov-demo');assert.match(html,/Superseded receipt/);assert.doesNotMatch(html,/data-verify-receipt=/);
 });
+
+test('Sea Glass arrival record is backed by a reviewed, landed manifest',()=>{
+ const s=session();
+ assert.equal(s.run('visits[2].people.length'),3);
+ assert.equal(s.run("visits[2].people.every((p,i)=>currentLanding(visits[2],i)?.status==='Landed')"),true);
+ assert.match(s.route('#immigration/3'),/3 of 3/);
+});
+test('landing outcomes are per person, need a checked identity and a permitted-until date',()=>{
+ const s=session();s.run("var gv=visits.find(v=>v.id==='gov-demo')");
+ assert.equal(s.run("currentLanding(gv,0).until"),'2027-01-24');
+ assert.equal(s.run("recordLanding(gv,1,{status:'Landed',until:'2027-01-24',actor:'Officer'}).ok"),false);
+ s.run("recordPersonReview(gv,1,{status:'Checked',actor:'Officer',note:'Matched'})");
+ assert.equal(s.run("recordLanding(gv,1,{status:'Landed',until:'',actor:'Officer'}).ok"),false);
+ assert.equal(s.run("recordLanding(gv,1,{status:'Landed',until:'2027-01-01',actor:'Officer'}).ok"),false);
+ assert.equal(s.run("recordLanding(gv,1,{status:'Landed',until:'2027-01-24',actor:'Officer'}).ok"),true);
+ assert.equal(s.run("recordLanding(gv,2,{status:'Refused entry',actor:'Officer',note:''}).ok"),false);
+ assert.equal(s.run("recordLanding(gv,2,{status:'Refused entry',actor:'Officer',note:'Fictional reason'}).ok"),true);
+ assert.equal(s.run("currentLanding(gv,2).until"),'');
+ assert.equal(s.run("gv.decisions.find(d=>d.key==='immigration-in').status"),'Pending');
+});
+test('landing beyond passport expiry is flagged and amendments reset landings',()=>{
+ const s=session();s.run("var gv=visits.find(v=>v.id==='gov-demo');recordPersonReview(gv,2,{status:'Checked',actor:'Officer',note:'Matched'});recordLanding(gv,2,{status:'Landed',until:'2027-01-24',actor:'Officer'})");
+ assert.match(s.run('landingObservations(gv.people[2],currentLanding(gv,2)).join()'),/past passport expiry/);
+ s.run('gv.version++');
+ assert.equal(s.run('currentLanding(gv,0)'),null);
+});
+test('Immigration desk uses Immigration wording and keeps landings off public verification',()=>{
+ const s=session();const html=s.route('#immigration/3');
+ assert.match(html,/Record vessel arrival or departure outcome/);
+ assert.match(html,/>Cleared</);assert.match(html,/Refused entry/);
+ assert.doesNotMatch(html,/Simulate a team decision/);
+ assert.match(s.route('#customs/3'),/Simulate a team decision/);
+ assert.doesNotMatch(s.route('#verify/HBR-DEMO-1003'),/DEMO-LAND|Permitted to stay/);
+});

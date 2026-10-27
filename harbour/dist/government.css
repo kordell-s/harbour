@@ -40,12 +40,13 @@
 .stack-links{display:grid;gap:16px;margin:22px 0}.stack-links a{color:var(--teal);font-size:14px;text-underline-offset:4px}
 .review-note{padding:16px 18px;border-left:3px solid #a77724;background:#fff7e8;color:#694c1d;font-size:14px;line-height:1.55;margin-bottom:24px;border-radius:0 10px 10px 0}
 .review-note ul{padding-left:20px;margin:8px 0 0}
-.manifest-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;padding-bottom:22px;margin-bottom:20px;border-bottom:1px solid var(--line)}
+.manifest-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;padding-bottom:22px;margin-bottom:20px;border-bottom:1px solid var(--line)}
 .manifest-summary strong{font-size:27px;display:block;font-variant-numeric:tabular-nums}.manifest-summary span{font-size:12px;color:var(--muted)}
 .manifest-person{margin-top:28px;border-top:1px solid #c7d8d3;padding-top:24px}
 .manifest-person .gov-facts{margin:24px 0}.manifest-person .gov-facts dd{font-variant-numeric:tabular-nums}
 .manifest-person .gov-section-head{align-items:flex-start}.manifest-person .badge{flex-shrink:0}
 .private-note{padding:16px;background:#f0f6f4;border:1px solid #d8e6e1;border-radius:12px;font-size:14px;margin-top:16px}.private-note p{margin:8px 0}
+.landing-outcome{margin-top:20px;padding-top:18px;border-top:1px dashed #c7d8d3}.landing-outcome>p{margin:10px 0 0}.landing-outcome .review-note{margin:14px 0 0}.landing-outcome details{margin-top:12px}
 .epay-notice{background:#073e43;color:white;padding:16px 22px;border-radius:14px;display:flex;align-items:center;gap:10px 24px;flex-wrap:wrap;margin-bottom:30px}
 .epay-notice strong{font-size:14px}.epay-notice span{font-size:13px;color:#d2e6e0}
 .epay-layout{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:28px;align-items:start}
@@ -144,7 +145,7 @@ header{position:relative}
  .gov-facts dt{font-size:12px;line-height:1.5}
  .gov-facts dd{font-size:15px;line-height:1.5}
  .gov-facts div{padding-bottom:4px}
- .manifest-summary{gap:14px 8px;padding-bottom:18px;margin-bottom:18px}
+ .manifest-summary{grid-template-columns:1fr 1fr;gap:14px 8px;padding-bottom:18px;margin-bottom:18px}
  .manifest-summary strong{font-size:25px}
  .manifest-summary span{line-height:1.5;display:block}
  .manifest-person .gov-section-head{gap:12px}
@@ -165,9 +166,6 @@ header{position:relative}
  .government .pagehead h1{font-size:30px}
  .gov-detail .pagehead h1{font-size:25px}
  .desk-nav a{font-size:12px}
- .manifest-summary{grid-template-columns:1fr 1fr}
- .manifest-summary>div:last-child{grid-column:1/-1;display:flex;align-items:baseline;gap:12px}
- .manifest-summary>div:last-child strong{font-size:22px}
  .payment-total strong{font-size:21px}
 }
 @media(prefers-reduced-motion:reduce){.government button,.government .button{transition:none}.government button:hover,.government .button:hover,.government button:active,.government .button:active{transform:none}}
