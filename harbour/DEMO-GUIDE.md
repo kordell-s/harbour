@@ -47,3 +47,13 @@ Start at `#customs`, then open **North Star**. The visit is populated so stakeho
 5. **Public verification** (`#verify/HBR-DEMO-GOV`) shows the scoped process outcomes without passport identities, private review notes or receipts.
 
 Navigation keeps session changes; reloading restores the examples. Planned visits are January 2027. The assessment date uses the current Anguilla date. The demonstration amount is illustrative, not a government fee quote.
+
+## Passport scans to manifest
+
+1. As **Broker**, open **New application** (`#intake`) and go to **03 · Crew & guests**.
+2. Select **Import from passport scans**, then **Use fictional sample scans** (or drop files). The samples are a five-page emailed PDF (one page holds two passports, one is scanned upside down), a tilted phone photo and a smudged scan.
+3. While it reads, explain that nothing is uploaded: reading happens in the browser and images are discarded.
+4. Point out the summary line (passports, pages, seconds) and the badges: **Verified** means check digits pass and two independent reads agree; **Expired** is read correctly but out of date; **Check** highlights fields to compare with the scan and starts unticked. Click a thumbnail to enlarge it.
+5. Correct a highlighted field if needed, tick it, and select **Add N people to manifest**. The rows can still be edited before saving.
+
+Expect roughly 20 seconds for the eight sample passports after the reader has loaded once; the first use downloads the reader (several MB). Keep the tab in front while it reads.

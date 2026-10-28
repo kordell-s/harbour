@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const vm = require('node:vm');
 const governmentSource = require('node:fs').existsSync(`${__dirname}/../dist/government.js`) ? readFileSync(`${__dirname}/../dist/government.js`, 'utf8') : '';
-const source = governmentSource + '\n' + (require('node:fs').existsSync(`${__dirname}/../dist/documents.js`) ? readFileSync(`${__dirname}/../dist/documents.js`, 'utf8') : '') + '\n' + readFileSync(process.env.HARBOUR_APP || `${__dirname}/../dist/app.js`, 'utf8');
+const source = governmentSource + '\n' + (require('node:fs').existsSync(`${__dirname}/../dist/documents.js`) ? readFileSync(`${__dirname}/../dist/documents.js`, 'utf8') : '') + '\n' + readFileSync(`${__dirname}/../dist/manifest-import.js`, 'utf8') + '\n' + readFileSync(process.env.HARBOUR_APP || `${__dirname}/../dist/app.js`, 'utf8');
 
 // A minimal DOM harness exercises the real route renderers and event handlers.
 // It does not substitute for a browser layout or accessibility check.
@@ -393,4 +393,57 @@ test('a deep link adopts its role until one is chosen, then other workspaces are
 test('officer desks show no cross-team tabs',()=>{
  const s=session();s.run("currentRole='immigration';roleChosen=true");
  assert.doesNotMatch(s.route('#immigration'),/Customs desk/);
+});
+
+const specimen="{surname:'Harrington',givenNames:'Olivia Rose',country:'GBR',nationality:'GBR',number:'533190274',dob:'1988-02-11',sex:'F',expiry:'2032-02-10'}";
+test('MRZ check digits follow ICAO 9303',()=>{
+ const s=session();
+ // ICAO 9303 Part 3 worked example: document number L898902C3 has check digit 6.
+ assert.equal(s.run("mrzCheck('L898902C3')"),'6');
+ assert.equal(s.run("mrzCheck('740812')"),'2');
+});
+test('a passport MRZ is parsed into manifest fields and verified',()=>{
+ const s=session();s.run(`var lines=buildMrz(${specimen}),p=parseMrz(lines[0],lines[1])`);
+ assert.equal(s.run('p.verified'),true);
+ assert.equal(s.run('p.name'),'Olivia Rose Harrington');
+ assert.equal(s.run('p.sex'),'Female');
+ assert.equal(s.run('p.nationality'),'United Kingdom');
+ assert.equal(s.run('p.passport'),'533190274');
+ assert.equal(s.run('p.dob'),'1988-02-11');
+ assert.equal(s.run('p.passportExpiry'),'2032-02-10');
+ assert.equal(s.run("parseMrz(...buildMrz({surname:'Becker',givenNames:'Hanna',country:'D<<',nationality:'D<<',number:'C01X8R4K7',dob:'2015-03-19',sex:'F',expiry:'2028-03-18'})).nationality"),'Germany');
+});
+test('MRZs are found in noisy OCR text and common misreads are corrected or flagged',()=>{
+ const s=session();s.run(`var lines=buildMrz(${specimen})`);
+ // Surrounding text, spaces inside lines and a letter O read for a zero in the date of birth.
+ const found=s.run("findMrzs('PASSPORT SPECIMEN\\nSURNAME HARRINGTON\\n'+lines[0].replace('<<','< <')+'\\n'+lines[1].replace('880211','88O211')+'\\n')");
+ assert.equal(found.length,1);assert.equal(found[0].verified,true);assert.equal(found[0].dob,'1988-02-11');
+ // A misread passport number is flagged, not guessed: its single check digit cannot identify the error.
+ const misread=s.run("findMrzs(lines[0]+'\\n'+lines[1].replace('533190274','5331902T4'))[0]");
+ assert.equal(misread.passport,'5331902T4');assert.equal(misread.checks.passport,false);assert.equal(misread.verified,false);
+ // A wrong digit cannot be guessed: the birth date is flagged rather than silently accepted.
+ const smudged=s.run("findMrzs(lines[0]+'\\n'+lines[1].replace('880211','880811'))[0]");
+ assert.equal(smudged.verified,false);assert.equal(smudged.checks.dob,false);assert.equal(smudged.checks.passport,true);
+ // One character dropped by OCR in the filler is tolerated.
+ assert.equal(s.run("findMrzs(lines[0]+'\\n'+lines[1].replace('<<<<<<<<<<<<<<','<<<<<<<<<<<<<'))[0].verified"),true);
+ // Filler after the given names misread as letters does not leak into the name.
+ assert.equal(s.run("findMrzs(lines[0].replace(/<{6}$/,'<L<K<<')+'\\n'+lines[1])[0].name"),'Olivia Rose Harrington');
+ assert.equal(s.run("findMrzs('no passport here\\nP<<<<<<\\n').length"),0);
+});
+test('intake offers passport scan import and keeps the sex field on the manifest',()=>{
+ const s=session();
+ assert.match(s.route('#intake'),/Import from passport scans/);
+ s.run("visits[0].people[0].sex='Female'");
+ assert.match(s.run("personIdentity(visits[0].people[0])"),/Female/);
+});
+test('a person is verified only when two independent reads agree',()=>{
+ const s=session();s.run(`var lines=buildMrz(${specimen}),good=findMrzs(lines.join('\\n'))`);
+ assert.equal(s.run('confirmReads(good,good)[0].verified'),true);
+ // A misread that still passes the check digit (1 in 10 for multi-character errors) is caught by disagreement.
+ s.run("var lucky=[{...good[0],passport:'O1X8R4AK7'}]");
+ const r=s.run('confirmReads(lucky,good)[0]');assert.equal(r.verified,false);assert.deepEqual([...r.disagree],['passport']);
+ // A name has no check digit; disagreement flags it.
+ assert.deepEqual([...s.run("confirmReads([{...good[0],name:'Olivia Rose Harringtom'}],good)[0].disagree")],['name']);
+ // Found by only one read: never verified.
+ assert.equal(s.run('confirmReads(good,[])[0].verified'),false);
 });

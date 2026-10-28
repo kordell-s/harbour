@@ -111,3 +111,26 @@ header > .button, .pagehead > .button { flex-shrink: 0; white-space: nowrap; }
 }
 .document-group { border: 0; border-top: 1px solid var(--line); padding: 12px 0 8px; margin: 28px 0 0; min-width: 0; }
 .document-group legend { color: var(--teal); font-weight: 700; padding-right: 12px; }
+
+/* Passport scan import */
+.people-actions{display:flex;flex-wrap:wrap;gap:12px;margin:18px 0 6px}
+.scan-import{margin:18px 0;padding:24px;border:1px solid #c7d8d3;border-radius:18px;background:#fbfdfc}
+.scan-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.scan-head h3{margin:0 0 6px;font-size:20px}.scan-head p{margin:0;max-width:62ch}
+.scan-drop{display:flex;flex-direction:column;align-items:center;gap:4px;margin:20px 0 10px;padding:28px 16px;border:2px dashed #b6ccc6;border-radius:16px;background:white;text-align:center;cursor:pointer;position:relative}
+.scan-drop.over{border-color:var(--teal);background:#edf5f2}.scan-drop span{font-size:13px;color:var(--muted)}
+.scan-drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.scan-drop:focus-within{outline:2px solid var(--teal);outline-offset:3px}
+.scan-status{min-height:1.5em;font-weight:600;color:var(--teal);margin:14px 0 0}
+.scan-card{display:grid;grid-template-columns:280px minmax(0,1fr);gap:20px;padding:20px 0;border-top:1px solid var(--line)}
+.scan-thumb{padding:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:white;align-self:start;cursor:zoom-in}
+.scan-thumb img{display:block;width:100%;height:auto}
+.scan-thumb.zoomed{grid-column:1/-1;cursor:zoom-out}
+.scan-note{margin:8px 0 12px;font-size:14px}.scan-note.warn{color:#775216}.scan-note.danger{color:#9a2b3a}
+.badge.danger{background:#fbe3e6;color:#8f2433}
+.scan-fields{grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:10px 14px}.scan-fields label{font-size:13px}
+.scan-fields input,.scan-fields select{margin-top:4px}
+.scan-flag{border-color:#c58b2a!important;background:#fff7e8!important}
+.scan-include{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:14px;font-weight:600}.scan-include input{width:auto;margin:0}
+@media(max-width:900px){.scan-card{grid-template-columns:200px minmax(0,1fr)}}
+@media(max-width:600px){.scan-import{padding:16px}.scan-card{grid-template-columns:1fr}.scan-thumb{max-width:260px}.scan-head{flex-direction:column}}
+.scan-import [hidden]{display:none!important}
