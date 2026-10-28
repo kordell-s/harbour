@@ -370,3 +370,27 @@ test('Immigration desk uses Immigration wording and keeps landings off public ve
  assert.match(s.route('#customs/3'),/Simulate a team decision/);
  assert.doesNotMatch(s.route('#verify/HBR-DEMO-1003'),/DEMO-LAND|Permitted to stay/);
 });
+
+test('demo roles own their routes; home and verification stay open to all',()=>{
+ const s=session();
+ assert.equal(s.run("roleAllows('immigration','immigration/gov-demo')"),true);
+ assert.equal(s.run("roleAllows('immigration','customs/gov-demo')"),false);
+ assert.equal(s.run("roleAllows('broker','epay/gov-demo')"),true);
+ assert.equal(s.run("roleAllows('customs','epay')"),false);
+ assert.equal(s.run("roleAllows('customs','document/3/REQ-1')"),true);
+ for(const role of ['broker','customs','immigration'])for(const route of ['home','verify/HBR-DEMO-1003','reset'])assert.equal(s.run(`roleAllows('${role}','${route}')`),true);
+});
+test('a deep link adopts its role until one is chosen, then other workspaces are gated',()=>{
+ const s=session();
+ assert.match(s.route('#immigration/gov-demo'),/North Star/);
+ assert.equal(s.run('currentRole'),'immigration');
+ s.run("currentRole='broker';roleChosen=true");
+ const html=s.route('#immigration/gov-demo');
+ assert.match(html,/belongs to the Immigration officer workspace/);
+ assert.doesNotMatch(html,/DEMO-NS-P001/);
+ assert.match(s.route('#dashboard'),/Your yacht applications/);
+});
+test('officer desks show no cross-team tabs',()=>{
+ const s=session();s.run("currentRole='immigration';roleChosen=true");
+ assert.doesNotMatch(s.route('#immigration'),/Customs desk/);
+});

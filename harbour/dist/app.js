@@ -69,7 +69,7 @@ function intake(){
   form.prepend(block);const planning=document.createElement('div');planning.innerHTML=processIntake(data||{});form.prepend(planning);
 }
 
-function render(){const route=location.hash.slice(1)||'home';if(route==='customs'||route.startsWith('customs/'))governmentDesk('customs',route.split('/')[1]);else if(route==='immigration'||route.startsWith('immigration/'))governmentDesk('immigration',route.split('/')[1]);else if(route==='epay'||route.startsWith('epay/'))paymentPortal(route.split('/')[1],route.split('/')[2]);else if(route.startsWith('documents/'))documentPack(route.split('/')[1],route.split('/')[2]);else if(route.startsWith('document-review/'))documentReview(route.split('/')[1]);else if(route.startsWith('document/'))documentView(route.split('/')[1],route.split('/')[2]);else if(route==='dashboard')dashboard();else if(route.startsWith('visit/'))detail(route.split('/')[1]);else if(route==='intake')intake();else if(route.startsWith('submit/'))submissionReview(route.split('/')[1]);else if(route==='reset')resetScreen();else if(route.startsWith('review'))review(route.split('/')[1]);else if(route.startsWith('verify'))verify(decodeURIComponent(route.split('/')[1]||''));else home();if(route!=='intake')editingId=null;updateNavigation(route);window.scrollTo(0,0)}
+function render(){const route=location.hash.slice(1)||'home';if(!roleAllows(currentRole,route)){const owners=routeOwners(route);if(roleChosen){roleGate(route,owners);updateNavigation(route);window.scrollTo(0,0);return}currentRole=owners[0]}if(route==='customs'||route.startsWith('customs/'))governmentDesk('customs',route.split('/')[1]);else if(route==='immigration'||route.startsWith('immigration/'))governmentDesk('immigration',route.split('/')[1]);else if(route==='epay'||route.startsWith('epay/'))paymentPortal(route.split('/')[1],route.split('/')[2]);else if(route.startsWith('documents/'))documentPack(route.split('/')[1],route.split('/')[2]);else if(route.startsWith('document-review/'))documentReview(route.split('/')[1]);else if(route.startsWith('document/'))documentView(route.split('/')[1],route.split('/')[2]);else if(route==='dashboard')dashboard();else if(route.startsWith('visit/'))detail(route.split('/')[1]);else if(route==='intake')intake();else if(route.startsWith('submit/'))submissionReview(route.split('/')[1]);else if(route==='reset')resetScreen();else if(route.startsWith('review'))review(route.split('/')[1]);else if(route.startsWith('verify'))verify(decodeURIComponent(route.split('/')[1]||''));else home();if(route!=='intake')editingId=null;updateNavigation(route);window.scrollTo(0,0)}
 function updateNavigation(route){
   document.querySelector('#mobile-menu')?.removeAttribute?.('open');
   const section=route.startsWith('customs')?'customs':route.startsWith('immigration')?'immigration':route.startsWith('epay')?'epay':(route.startsWith('review')||route.startsWith('document-review/'))?'review':route.startsWith('verify')?'verify':route==='dashboard'||route==='intake'||route==='reset'||route.startsWith('submit/')||route.startsWith('visit/')||route.startsWith('document')?'dashboard':'home';
@@ -77,6 +77,42 @@ function updateNavigation(route){
     if(link.getAttribute('href')==='#'+section)link.setAttribute('aria-current','page');
     else link.removeAttribute('aria-current');
   });
+  applyRole();
+}
+
+// Demo roles: a viewing preference that scopes navigation, not authentication.
+const demoRoles={broker:{name:'Broker',home:'dashboard'},customs:{name:'Customs officer',home:'customs'},immigration:{name:'Immigration officer',home:'immigration'}};
+const storedRole=(()=>{try{return localStorage.getItem('harbour-role')}catch{return null}})();
+let currentRole=demoRoles[storedRole]?storedRole:'broker',roleChosen=!!demoRoles[storedRole];
+// Roles that may open a route. Null means any role (home, verification, reset).
+function routeOwners(route){
+  if(route.startsWith('customs')||route.startsWith('document-review/'))return ['customs'];
+  if(route.startsWith('immigration'))return ['immigration'];
+  if(route.startsWith('review'))return ['customs','immigration'];
+  if(route.startsWith('document/'))return ['broker','customs'];
+  if(route.startsWith('epay')||route==='dashboard'||route==='intake'||route.startsWith('submit/')||route.startsWith('visit/')||route.startsWith('documents/'))return ['broker'];
+  return null;
+}
+function roleAllows(role,route){const owners=routeOwners(route);return !owners||owners.includes(role)}
+function setRole(role,route){
+  if(!demoRoles[role])return;
+  currentRole=role;roleChosen=true;
+  try{localStorage.setItem('harbour-role',role)}catch{}
+  const target=route||demoRoles[role].home;
+  if(location.hash==='#'+target)render();else location.hash=target;
+}
+function roleGate(route,owners){
+  const owner=owners[0];
+  app.innerHTML=`<section class="workspace"><div class="empty role-gate"><span class="eyebrow">Viewing as ${esc(demoRoles[currentRole].name)}</span><h1>This page belongs to the ${esc(demoRoles[owner].name)} workspace</h1><p>Switch roles to open it. In the real service, access would follow each person's sign-in.</p><div class="actions"><button type="button" id="gate-switch">View as ${esc(demoRoles[owner].name)}</button><a class="button secondary" href="#${demoRoles[currentRole].home}">Back to my workspace</a></div></div></section>`;
+  document.querySelector('#gate-switch').onclick=()=>setRole(owner,route);
+}
+// Hide navigation and in-page links the current role cannot open.
+function applyRole(){
+  const picker=document.querySelector('#role-select');
+  if(picker&&picker.value!==currentRole)picker.value=currentRole;
+  document.querySelectorAll('header nav a[data-role]').forEach(link=>{link.hidden=link.dataset.role!==currentRole});
+  document.querySelectorAll('header > .button').forEach(link=>link.setAttribute('href','#'+demoRoles[currentRole].home));
+  document.querySelectorAll('#app a[href^="#"]').forEach(link=>{link.hidden=!roleAllows(currentRole,link.getAttribute('href').slice(1))});
 }
 // Demo lifecycle: editable drafts never replace a submitted record until confirmed.
 function clone(value){return JSON.parse(JSON.stringify(value))}
@@ -264,6 +300,8 @@ visits[1].draft=clone(Object.fromEntries(['name','flag','registration','length',
 seedGovernmentDemo();
 const initialDemo=clone(visits);
 window.addEventListener('hashchange',render);
+const rolePicker=document.querySelector('#role-select');
+if(rolePicker)rolePicker.onchange=()=>setRole(rolePicker.value);
 render();
 
 // Native disclosure menu remains keyboard-accessible and closes after navigation.

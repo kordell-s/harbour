@@ -169,3 +169,12 @@ header{position:relative}
  .payment-total strong{font-size:21px}
 }
 @media(prefers-reduced-motion:reduce){.government button,.government .button{transition:none}.government button:hover,.government .button:hover,.government button:active,.government .button:active{transform:none}}
+
+/* Demo role switcher: a viewing preference, not a sign-in. */
+.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.role-switch{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);flex-shrink:0}
+.role-switch select{min-height:40px;padding:6px 30px 6px 12px;border:1px solid #c7d8d3;border-radius:12px;background-color:white;color:var(--ink);font-size:14px;font-weight:600;width:auto}
+header nav a[hidden],#app a[hidden]{display:none!important}
+.role-gate{max-width:640px;margin:40px auto;text-align:center}.role-gate h1{font-size:32px;margin:12px 0}.role-gate .actions{justify-content:center;flex-wrap:wrap}
+@media(max-width:900px){.role-switch{order:2;margin-left:auto}header .mobile-main-nav{order:3}}
+@media(max-width:600px){.role-switch>span:first-child{display:none}.role-switch select{font-size:16px;min-height:44px}.role-gate h1{font-size:25px}}

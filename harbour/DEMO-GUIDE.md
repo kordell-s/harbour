@@ -36,6 +36,8 @@ All values and document controls are fictional. The supplied real clearance scan
 
 ## Government stakeholder walkthrough
 
+Use **Viewing as** in the header to pick Broker, Customs officer or Immigration officer. Each role sees only its own navigation and links; Discover and Verify stay open to all. Opening another role's page offers a switch instead of showing it. A first visit through a deep link (for example `#immigration/gov-demo`) adopts that link's role. The choice is remembered in this browser only and is not a sign-in. E-pay belongs to the Broker role, so the payment step means switching from Customs to Broker and back.
+
 Start at `#customs`, then open **North Star**. The visit is populated so stakeholders can inspect the information and decision states without entering data.
 
 1. **Customs file** (`#customs/gov-demo`): vessel identity, representation, voyage/declarations, supporting filenames, current cruising request, fictional assessment and team decisions. The decision controls are optional.
