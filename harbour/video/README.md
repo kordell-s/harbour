@@ -40,3 +40,15 @@ Coastal photo by **Roy Googin**, [Anguilla aerial view, western portion](https:/
 ## Verification
 
 Run TypeScript checking, `node render-review.cjs` for review stills, then render and verify the exported MP4. Verification confirms 60 seconds, 1920 × 1080, 30 fps, H.264, 1,800 decoded frames and no audio stream; it also extracts final-video stills for visual inspection. The prior broker MP4 is preserved separately in the working project's output folder.
+
+## Passport scan demo — 28 October 2026
+
+`record-scan-demo.cjs` records a real, scripted run of the app (not screenshots): a broker starts an application, drags emailed passport scans into the import panel, Harbour reads them, the broker fixes the one smudged birth date, adds everyone, completes two missing details and opens the generated crew and passenger lists. A visible cursor, captions and title cards are overlaid in the page during recording. Captions quote the measured reading time from that run.
+
+```sh
+python3 -m http.server 8000 --bind 127.0.0.1 --directory ../dist   # in another terminal
+node record-scan-demo.cjs                                           # fictional samples
+node record-scan-demo.cjs http://127.0.0.1:8000 mock1.png mock2.png # your own mock passports
+```
+
+Writes `output/passport-scan-demo.mp4` (1920 × 1080, 30 fps, H.264, about 100 seconds, no audio). Requires Google Chrome, ffmpeg and network access for the in-browser reader. With your own files, the smudged-date and printed-number scenes appear only if a scan triggers them; AI-generated passports usually need `../tools/specimens.py stamp` first so their MRZ is valid.

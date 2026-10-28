@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const vm = require('node:vm');
 const governmentSource = require('node:fs').existsSync(`${__dirname}/../dist/government.js`) ? readFileSync(`${__dirname}/../dist/government.js`, 'utf8') : '';
-const source = governmentSource + '\n' + (require('node:fs').existsSync(`${__dirname}/../dist/documents.js`) ? readFileSync(`${__dirname}/../dist/documents.js`, 'utf8') : '') + '\n' + readFileSync(`${__dirname}/../dist/manifest-import.js`, 'utf8') + '\n' + readFileSync(process.env.HARBOUR_APP || `${__dirname}/../dist/app.js`, 'utf8');
+const source = governmentSource + '\n' + (require('node:fs').existsSync(`${__dirname}/../dist/documents.js`) ? readFileSync(`${__dirname}/../dist/documents.js`, 'utf8') : '') + '\n' + readFileSync(`${__dirname}/../dist/manifest-import.js`, 'utf8') + '\n' + readFileSync(`${__dirname}/../dist/manifest.js`, 'utf8') + '\n' + readFileSync(process.env.HARBOUR_APP || `${__dirname}/../dist/app.js`, 'utf8');
 
 // A minimal DOM harness exercises the real route renderers and event handlers.
 // It does not substitute for a browser layout or accessibility check.
@@ -436,14 +436,72 @@ test('intake offers passport scan import and keeps the sex field on the manifest
  s.run("visits[0].people[0].sex='Female'");
  assert.match(s.run("personIdentity(visits[0].people[0])"),/Female/);
 });
-test('a person is verified only when two independent reads agree',()=>{
- const s=session();s.run(`var lines=buildMrz(${specimen}),good=findMrzs(lines.join('\\n'))`);
- assert.equal(s.run('confirmReads(good,good)[0].verified'),true);
- // A misread that still passes the check digit (1 in 10 for multi-character errors) is caught by disagreement.
- s.run("var lucky=[{...good[0],passport:'O1X8R4AK7'}]");
- const r=s.run('confirmReads(lucky,good)[0]');assert.equal(r.verified,false);assert.deepEqual([...r.disagree],['passport']);
- // A name has no check digit; disagreement flags it.
- assert.deepEqual([...s.run("confirmReads([{...good[0],name:'Olivia Rose Harringtom'}],good)[0].disagree")],['name']);
- // Found by only one read: never verified.
- assert.equal(s.run('confirmReads(good,[])[0].verified'),false);
+test('three reads are voted field by field; a value needs two reads behind it',()=>{
+ const s=session();s.run(`var lines=buildMrz(${specimen}),good=findMrzs(lines.join('\\n'))[0]`);
+ // A misread that still passes its check digit (Becker's O1X8R4AK7 case) is outvoted by two correct reads.
+ s.run("var lucky=parseMrz(lines[0],lines[1].replace('533190274','O1X8R4AK7'))");
+ assert.equal(s.run('voteReads([lucky,good,good]).passport'),'533190274');
+ assert.equal(s.run('voteReads([lucky,good,good]).verified'),true);
+ // Two reads that disagree, with nothing to break the tie, flag the field.
+ const tie=s.run('voteReads([good,lucky])');assert.equal(tie.verified,false);assert.deepEqual([...tie.disagree],['passport']);
+ // The printed page breaks a tie on the passport number when exactly one candidate appears on it.
+ assert.equal(s.run("voteReads([lucky,good],'PASSPORT NO 533190274 SURNAME HARRINGTON').passport"),'533190274');
+ assert.equal(s.run("voteReads([lucky,good],'PASSPORT NO 533190274 SURNAME HARRINGTON').verified"),true);
+ // With no exact match, a printed token close to a read and passing the MRZ check digit resolves it.
+ s.run("var worse=parseMrz(lines[0],lines[1].replace('533190274','S33190Z74'))");
+ assert.equal(s.run("voteReads([lucky,worse],'PASSPORT NO 533190274 BRISTOL').passport"),'533190274');
+ // Two reads agreeing on a number that fails its check digit (Becker's CO1X8RAK7) defer to the printed page.
+ s.run("var agreeWrong=parseMrz(lines[0],lines[1].replace('533190274','S3319O274'))");
+ assert.equal(s.run("voteReads([agreeWrong,agreeWrong],'NO 533190274').passport"),'533190274');
+ assert.equal(s.run("voteReads([agreeWrong,agreeWrong],'').verified"),false);
+ // MRZ text that leaks into the printed text never confirms a read: only whole printed words count.
+ assert.equal(s.run("voteReads([lucky,good],'O1X8R4AK7<<9GBR8802115F').verified"),false);
+ assert.equal(s.run("voteReads([lucky,good],'PO1X8R4AK7Q').verified"),false);
+ // A printed token that fails the check digit is ignored.
+ assert.equal(s.run("voteReads([lucky,worse],'PASSPORT NO 533190275 BRISTOL').verified"),false);
+ // Names have no check digit; a disagreement there is flagged even when the digits pass.
+ s.run("var renamed=parseMrz(lines[0].replace('OLIVIA','OLIVLA'),lines[1])");
+ assert.deepEqual([...s.run('voteReads([good,renamed]).disagree')],['name']);
+ // One read alone is never verified.
+ assert.equal(s.run('voteReads([good]).verified'),false);assert.equal(s.run('voteReads([]),null'),null);
+});
+test('plausibility checks flag impossible values and note minors',()=>{
+ const s=session();s.run(`var p=findMrzs(buildMrz(${specimen}).join('\\n'))[0]`);
+ assert.deepEqual([...s.run("plausibility(p,'2027-01-10').flags")],[]);
+ assert.deepEqual([...s.run("plausibility({...p,dob:'2099-01-01'}).flags")],['dob']);
+ assert.deepEqual([...s.run("plausibility({...p,dob:'1890-01-01'}).flags")],['dob']);
+ assert.deepEqual([...s.run("plausibility({...p,passportExpiry:'2045-01-01'}).flags")],['passportExpiry']);
+ assert.deepEqual([...s.run("plausibility({...p,knownCodes:{nationality:false,passportCountry:true}}).flags")],['nationality']);
+ assert.match(s.run("plausibility({...p,dob:'2015-03-19'},'2027-01-10').notes.join()"),/Minor, aged 11/);
+ assert.equal(s.run("parseMrz('P<GBRHARRINGTONSMYTHE<<OLIVIA<ROSE<ELIZABETHA','"+"5331902741GBR8802115F3202102<<<<<<<<<<<<<<04')?.nameTruncated"),true);
+});
+test('printed page supplies place of birth and issue date under their labels',()=>{
+ const s=session();
+ const w=(text,x0,y0)=>({text,bbox:{x0,y0,x1:x0+text.length*14,y1:y0+24}});
+ const line=(words)=>({text:words.map(x=>x.text).join(' '),bbox:{x0:Math.min(...words.map(x=>x.bbox.x0)),y0:words[0].bbox.y0,x1:Math.max(...words.map(x=>x.bbox.x1)),y1:words[0].bbox.y1},words});
+ const lines=[line([w('Passport',410,400),w('No.',530,400),w('Place',880,400),w('of',960,400),w('birth',1000,400)]),line([w('533190274',410,430),w('SAN',880,430),w('DIEGO,',940,430),w('CA',1040,430)]),line([w('Date',880,470),w('of',950,470),w('issue',990,470)]),line([w('12',880,500),w('JUN',920,500),w('2022',980,500)])];
+ const out=s.run('printedFields('+JSON.stringify(lines)+')');
+ assert.equal(out.placeOfBirth,'San Diego, Ca');assert.equal(out.passportIssued,'2022-06-12');
+ assert.equal(s.run("printedDate('2022-02-11')"),'2022-02-11');assert.equal(s.run("printedDate('11.02.2022')"),'2022-02-11');assert.equal(s.run("printedDate('no date')"),'');
+});
+test('crew and passenger lists are generated from the manifest after FAL forms 5 and 6',()=>{
+ const s=session();s.run("currentRole='immigration';roleChosen=true;var gv=visits.find(v=>v.id==='gov-demo')");
+ s.run("Object.assign(gv.people[0],{placeOfBirth:'Bristol',rank:'Master'})");
+ const html=s.route('#manifest/gov-demo');
+ assert.match(html,/Crew list/);assert.match(html,/Passenger list/);assert.match(html,/HARBOUR, Taylor/);assert.match(html,/Master/);
+ assert.match(html,/2 people need details/);assert.match(html,/Place of birth/);
+ const rows=s.run('manifestRows(manifestRecord(gv))');
+ assert.equal(rows.crew.length,2);assert.equal(rows.passengers.length,1);
+ assert.equal(rows.passengers[0][10],'Marigot, Saint Martin');assert.equal(rows.passengers[0][11],'Gustavia, Saint Barthélemy');
+ assert.match(s.run('manifestCSV(manifestRecord(gv))'),/CREW LIST[\s\S]*PASSENGER LIST/);
+ assert.doesNotMatch(s.run("manifestCSV({...manifestRecord(gv),crew:[{surname:'=HYPERLINK(1)',givenNames:'x',rank:'',nationality:'',dob:'',passport:''}],passengers:[]})"),/"=HYPERLINK/);
+ // Lists are open to every demo role, and escape what they display.
+ s.run("gv.people[2].placeOfBirth='<img src=x>'");assert.doesNotMatch(s.route('#manifest/gov-demo'),/<img src=x>/);
+ for(const role of ['broker','customs'])assert.equal(s.run(`roleAllows('${role}','manifest/gov-demo')`),true);
+});
+test('manifest rows keep family and given names separately',()=>{
+ const s=session();
+ assert.deepEqual({...s.run("splitName('Olivia Rose Harrington')")},{givenNames:'Olivia Rose',surname:'Harrington'});
+ assert.equal(s.run("withFullName({givenNames:'Pieter',surname:'Van der Berg'}).name"),'Pieter Van der Berg');
+ assert.equal(s.run("withFullName({name:'Elena Morgan'}).surname"),'Morgan');
 });

@@ -134,3 +134,22 @@ header > .button, .pagehead > .button { flex-shrink: 0; white-space: nowrap; }
 @media(max-width:900px){.scan-card{grid-template-columns:200px minmax(0,1fr)}}
 @media(max-width:600px){.scan-import{padding:16px}.scan-card{grid-template-columns:1fr}.scan-thumb{max-width:260px}.scan-head{flex-direction:column}}
 .scan-import [hidden]{display:none!important}
+
+/* Scan review: MRZ strip and values read from the printed page */
+.scan-strip{display:block;width:100%;max-width:640px;margin:4px 0 14px;border:1px solid var(--line);border-radius:8px;background:white}
+.scan-source{display:inline-block;margin-left:4px;padding:1px 6px;border-radius:999px;background:#e8f0fb;color:#2b4f7a;font-size:11px;font-weight:600}
+.scan-printed{border-color:#9db6d6!important;background:#f3f7fd!important}
+
+/* Crew and passenger lists after IMO FAL Forms 5 and 6 */
+.manifest-page .pagehead{align-items:flex-start}
+.manifest-ready{display:flex;gap:10px;align-items:baseline;padding:14px 18px;border-radius:12px;background:#dcedea;color:#20574b;margin-bottom:16px}
+.fal-page{max-width:none;margin:28px 0;overflow-x:auto}
+.fal-page h2 small{font-size:14px;font-weight:500;color:var(--muted)}
+.fal-ship{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 18px;margin:18px 0}
+.fal-ship dt{font-size:11px;color:var(--muted)}.fal-ship dd{margin:2px 0 0;font-weight:650;overflow-wrap:anywhere}
+.fal-table{width:100%;border-collapse:collapse;font-size:13px;min-width:980px}.fal-table .nowrap{white-space:nowrap}
+.fal-table th,.fal-table td{border:1px solid #c7d8d3;padding:7px 8px;text-align:left;vertical-align:top}
+.fal-table th{background:#edf5f2;font-size:11px;font-weight:650}
+.fal-sign{display:flex;gap:16px;align-items:flex-end;margin-top:28px;font-size:12px;color:var(--muted)}.fal-sign span:last-child{flex:1;border-bottom:1px solid var(--ink);height:28px}
+@media(max-width:600px){.fal-ship{grid-template-columns:1fr 1fr}}
+@media print{@page{size:A4 landscape;margin:12mm}.fal-page{page-break-after:always;margin:0;border:0;box-shadow:none}.fal-table{min-width:0;font-size:10px}}

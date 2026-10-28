@@ -53,7 +53,11 @@ Navigation keeps session changes; reloading restores the examples. Planned visit
 1. As **Broker**, open **New application** (`#intake`) and go to **03 · Crew & guests**.
 2. Select **Import from passport scans**, then **Use fictional sample scans** (or drop files). The samples are a five-page emailed PDF (one page holds two passports, one is scanned upside down), a tilted phone photo and a smudged scan.
 3. While it reads, explain that nothing is uploaded: reading happens in the browser and images are discarded.
-4. Point out the summary line (passports, pages, seconds) and the badges: **Verified** means check digits pass and two independent reads agree; **Expired** is read correctly but out of date; **Check** highlights fields to compare with the scan and starts unticked. Click a thumbnail to enlarge it.
-5. Correct a highlighted field if needed, tick it, and select **Add N people to manifest**. The rows can still be edited before saving.
+4. Point out the summary line (passports, pages, seconds) and the badges: **Verified** means three reads agree and the check digits pass; **Expired** is read correctly but out of date; **Check** highlights fields to compare with the cropped machine-readable lines shown above them, and starts unticked. Becker's card shows the passport number confirmed against the number printed on the page. Click a thumbnail to enlarge it.
+5. Rossi's smudged birth date is left blank rather than guessed: type `1996-01-27`, tick her, and select **Add 8 people to manifest**. Rows keep family and given names separately and can still be edited.
+6. Set Okafor's place of birth (`Melbourne`, which the tilted photo could not supply) and rank (`Master`), fill the yacht and voyage details, and **Save draft**.
+7. On the visit page open **Crew & passenger lists**: the crew list (after IMO FAL Form 5) and passenger list (after FAL Form 6) are generated from the passport data. Show the completeness check, print / save as PDF, and the CSV export. Officers reach the same lists from the Immigration desk.
 
 Expect roughly 20 seconds for the eight sample passports after the reader has loaded once; the first use downloads the reader (several MB). Keep the tab in front while it reads.
+
+A 100-second recording of this flow is produced by `video/record-scan-demo.cjs` (see `video/README.md`).
