@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const vm = require('node:vm');
 const governmentSource = require('node:fs').existsSync(`${__dirname}/../dist/government.js`) ? readFileSync(`${__dirname}/../dist/government.js`, 'utf8') : '';
-const source = governmentSource + '\n' + (require('node:fs').existsSync(`${__dirname}/../dist/documents.js`) ? readFileSync(`${__dirname}/../dist/documents.js`, 'utf8') : '') + '\n' + readFileSync(`${__dirname}/../dist/manifest-import.js`, 'utf8') + '\n' + readFileSync(`${__dirname}/../dist/manifest.js`, 'utf8') + '\n' + readFileSync(process.env.HARBOUR_APP || `${__dirname}/../dist/app.js`, 'utf8');
+const source = readFileSync(`${__dirname}/../dist/clearance.js`, 'utf8') + '\n' + governmentSource + '\n' + (require('node:fs').existsSync(`${__dirname}/../dist/documents.js`) ? readFileSync(`${__dirname}/../dist/documents.js`, 'utf8') : '') + '\n' + readFileSync(`${__dirname}/../dist/manifest-import.js`, 'utf8') + '\n' + readFileSync(`${__dirname}/../dist/manifest.js`, 'utf8') + '\n' + readFileSync(process.env.HARBOUR_APP || `${__dirname}/../dist/app.js`, 'utf8');
 
 // A minimal DOM harness exercises the real route renderers and event handlers.
 // It does not substitute for a browser layout or accessibility check.
@@ -144,7 +144,12 @@ test('cancellation cannot be hidden by not-applicable or whitespace in the old r
 
 function preparedSession(type='cruising') {
  const s=session();
- s.run(`saveDocumentDraft(visits[2],'${type}',{...documentDefaults(visits[2]),applicant:'Sample Applicant',applicantAddress:'Sample address',ownerAddress:'Sample owner address',ownerAgent:'Sample Agent',agentPhone:'555',tonnageType:'Registered tonnage',tonnageSource:'Sample register',description:'Sample vessel',propulsion:'Power',rig:'Not applicable',colour:'White',ownerStatus:'Unconfirmed',period:'One week',requestedStart:'2027-01-10',applicationDate:'2027-01-08',declaration:'Confirmed for demo',construction:'Fibreglass',clearancePort:'Road Bay',nextPort:'Gustavia',destinationCountry:'Saint Barthélemy',crewCount:'1',guestCount:'0',countsConfirmed:'Confirmed for demo'})`);
+ if(type==='clearance')s.run(`
+  visits[2].people=[{role:'Crew',surname:'Captain',givenNames:'Sam',dob:'1988-02-13',placeOfBirth:'London',passport:'DEMO-CLEAR-1',nationality:'British'}];
+  visits[2].actualArrival='2027-01-10T08:00';
+  for(const key of ['customs-in','immigration-in','immigration-out'])setProcessRecord(visits[2],key,{applicability:'Required',status:'Recorded',actor:'Demo officer',note:'Sample review',reference:'DEMO-'+key});
+ `);
+ s.run(`saveDocumentDraft(visits[2],'${type}',{...documentDefaults(visits[2]),applicant:'Sample Applicant',applicantAddress:'Sample address',ownerAddress:'Sample owner address',ownerAgent:'Sample Agent',agentPhone:'555',tonnageType:'Registered tonnage',tonnageSource:'Sample register',description:'Sample vessel',propulsion:'Power',rig:'Not applicable',colour:'White',ownerStatus:'Unconfirmed',period:'One week',requestedStart:'2027-01-10',applicationDate:'2027-01-08',declaration:'Confirmed for demo',construction:'Fibreglass',clearancePort:'Road Bay',nextPort:'Gustavia',destinationCountry:'Saint Barthélemy',crewCount:'1',guestCount:'0',countsConfirmed:'Confirmed for demo',ownerGivenName:'Alex',ownerFamilyName:'Sample',ownerCapacity:'Owner',ownerResidence:'Anguilla',departureDate:'2027-01-16',departureTime:'11:30',skipperIndex:'0'})`);
  assert.equal(s.run(`submitDocumentRequest(visits[2],'${type}').ok`),true);
  return s;
 }
@@ -504,4 +509,30 @@ test('manifest rows keep family and given names separately',()=>{
  assert.deepEqual({...s.run("splitName('Olivia Rose Harrington')")},{givenNames:'Olivia Rose',surname:'Harrington'});
  assert.equal(s.run("withFullName({givenNames:'Pieter',surname:'Van der Berg'}).name"),'Pieter Van der Berg');
  assert.equal(s.run("withFullName({name:'Elena Morgan'}).surname"),'Morgan');
+});
+
+test('combined outward copy waits for Immigration departure review and freezes the submitted manifest',()=>{
+ const s=preparedSession('clearance');
+ s.run("visits[2].decisions.find(d=>d.key==='immigration-out').needsReview=true");
+ assert.match(s.run(`issueDemoDocument(visits[2],${issuance}).errors.join(' ')`),/Immigration departure/);
+ assert.equal(s.run("visits[2].decisions.find(d=>d.key==='customs-out').status"),'Pending');
+ s.run("setProcessRecord(visits[2],'immigration-out',{applicability:'Required',status:'Recorded',actor:'Officer',note:'Private immigration note',reference:'IMM-DEMO'});visits[2].people[0].passport='CHANGED';currentRole='customs'");
+ assert.equal(s.run(`issueDemoDocument(visits[2],${issuance}).ok`),true);
+ const copy=s.route('#document/3/DOC-1');
+ for(const value of ['Anguilla','Fictional demo','Reported entry','Scheduled departure','11:30','Alex','DEMO-CLEAR-1','Skipper','Passengers','IMM-DEMO']) assert.ok(copy.includes(value),value);
+ for(const value of ['CHANGED','Private immigration note'])assert.ok(!copy.includes(value),value);
+ assert.ok(!s.route('#verify/HBR-DEMO-1003').includes('DEMO-CLEAR-1'));
+ s.run("setProcessRecord(visits[2],'immigration-out',{applicability:'Required',status:'Recorded',actor:'Officer',note:'Updated departure record',reference:'IMM-NEW'})");
+ assert.equal(s.run("documentState(visits[2],visits[2].issuedDocuments[0])"),'Review needed');
+});
+
+test('clearance submission rejects mismatched totals, a guest as skipper, and incomplete birth details',()=>{
+ const s=preparedSession('clearance');
+ s.run(`visits[2].people.push({role:'Guest',surname:'Guest',givenNames:'Avery',dob:'1990-07-12',passport:'DEMO-CLEAR-2',nationality:'Canadian'});
+ saveDocumentDraft(visits[2],'clearance',{...visits[2].documentRequests[0].data,skipperIndex:'1'})`);
+ const errors=s.run("submitDocumentRequest(visits[2],'clearance').errors.join(' ')");
+ assert.match(errors,/match the submitted manifest/);
+ assert.match(errors,/Select the skipper/);
+ assert.match(errors,/place of birth/i);
+ assert.equal(s.run("visits[2].documentRequests.length"),1);
 });

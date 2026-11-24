@@ -78,3 +78,13 @@ The printed page also supplies place of birth and issue date (not in the MRZ), f
 `tools/specimens.py samples` regenerates the fictional scans in `dist/samples/` (generic design, SPECIMEN watermark, fictional people). `tools/specimens.py stamp IMAGE ... [--box X0,Y0,X1,Y1]` overlays a valid MRZ on an AI-generated mock passport, whose own MRZ text is usually invalid. Requires Python with Pillow and the macOS Menlo font.
 
 Not yet covered: ID cards and visas (TD1/TD2/MRV formats), HEIC photos in browsers other than Safari, an optional AI fallback for pages with no readable MRZ, email forwarding straight into Harbour, and arrival/departure variants of the lists.
+
+## Combined Anguilla outward-clearance copy
+
+Open **Broker portal → North Star → Document pack → Outward clearance**. The **Use fictional example** button fills sample owner and sailing details. Confirm them, select the skipper from the submitted crew, and submit the request. Visit amendments must be submitted first; a clearance request snapshots the matching manifest and reconciled crew/guest counts.
+
+Record actual entry in the broker's arrival/departure panel. In the simulated officer desks, record current Customs inward, Immigration arrival and Immigration departure outcomes. Open the document review and issuance page for North Star as Customs, select the outward request, and issue a new fictional document reference. That action records the Customs outward outcome only. It does not record actual departure, take payment or change Immigration outcomes.
+
+Open **Issued copies → View copy**. The Anguilla heading, entry/departure, vessel, owner, crew, passenger and departmental reference sections print as one document. Choose **Print / save as PDF** or download the standalone HTML. Larger manifests can run to multiple pages. A superseded request, changed reported entry, or changed prerequisite outcome flags the issued copy for review; public verification still excludes manifest and owner personal details.
+
+This is a proposed format for Customs and Immigration review. It uses fictional data, has no official seal, and does not replace the published forms. Current role switching remains a demo UI control without authenticated access.
